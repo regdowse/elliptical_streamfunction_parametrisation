@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 # SOLO 
 def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None):
@@ -97,8 +98,11 @@ def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None):
 
     return l0, r0, w, Q, Omega
 
-# Project quasi-straight data to transect data i.e., length along transect, along-track and across-track velocities
+
 def project_sadcp_to_transect(x, y, u, v):
+    '''
+    Project quasi-straight data to transect data i.e., length along transect, along-track and across-track velocities
+    '''
     x, y, u, v = map(np.asarray, (x, y, u, v))
     msk = np.isfinite(x) & np.isfinite(y) & np.isfinite(u) & np.isfinite(v)
     x, y, u, v = x[msk], y[msk], u[msk], v[msk]
@@ -136,8 +140,11 @@ def project_sadcp_to_transect(x, y, u, v):
 
     return df, m
 
-# Function to translate solo eddy center approximation to cartesian coordinates
+
 def translate_solo_results(x_l_start, y_l_start, m, l0, r0):
+    '''
+    Function to translate solo eddy center approximation to cartesian coordinates
+    '''
     denom = np.sqrt(1 + m**2)
     x0 = (l0 - r0*m)/denom + x_l_start
     y0 = (l0*m + r0)/denom + y_l_start
@@ -146,6 +153,10 @@ def translate_solo_results(x_l_start, y_l_start, m, l0, r0):
 # DOPPIO
 
 def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
+    '''
+    1st transect (i.e., zonal) data: x1, y1, u1, v1
+    2nd transect (i.e., meridional) data: x2, y2, u2, v2
+    '''
 
     def nan_return():
         nan2 = np.full((2, 2), np.nan)
@@ -432,9 +443,6 @@ def out_core_param_fit(
     pred_flag=False,
 ):
 
-    from scipy.optimize import curve_fit
-    import matplotlib.pyplot as plt
-
     rho2 = np.asarray(rho2, float)
     Qr   = np.asarray(Qr, float)
     vt   = np.asarray(vt, float)
@@ -564,6 +572,9 @@ def out_core_param_fit(
 # Helper functions
 
 def doppio_pipeliner(nxc, nyc, ut, vt, X_new, Y_new, r=30000.0):
+    '''
+    Return orthogonal transects, centered at (nxc, nyc) and readius r, from gridded velocity data
+    '''
     nan = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
     x = np.asarray(X_new[:, 0], float)
@@ -604,11 +615,12 @@ def doppio_pipeliner(nxc, nyc, ut, vt, X_new, Y_new, r=30000.0):
     return x1, y1, u1, v1, x2, y2, u2, v2
 
 
-
-def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0, plot=False):
-    xc_pre, yc_pre = 0.0, 0.0
-    q11, q12, q22 = 1.0, 0.0, 1.0
-    rho_core, rho_outer = 35_000.0, 100_000.0
+def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
+                          xc_pre=0.0, yc_pre=0.0, q11=1.0, q12=0.0, q22=1.0,
+                          rho_core=35_000.0, rho_outer = 100_000.0, plot=False):
+    '''
+    Return ESP paramters given source of velocity data
+    '''
 
     nanQ = np.full((2, 2), np.nan)
 
@@ -744,6 +756,9 @@ def axis_ratio_from_Q(Q):
     return np.sqrt(lam.max() / lam.min())
 
 def tangential_velocity(xp, yp, up, vp, xc, yc, Q, det1=False):
+    '''
+    Finds the tangential velocity given a flow with center (xc,yc) and deformation Q
+    '''
     Q = np.asarray(Q, float)
     if Q.shape == (3,):
         q11, q12, q22 = Q
@@ -767,6 +782,9 @@ def tangential_velocity(xp, yp, up, vp, xc, yc, Q, det1=False):
     return vt
 
 def model_uv_at_xy(xi, yi, xc, yc, Q, Omega, Rc):
+    '''
+    ESP reconstructed velocities
+    '''
     dx = xi - xc
     dy = yi - yc
 
@@ -781,6 +799,9 @@ def model_uv_at_xy(xi, yi, xc, yc, Q, Omega, Rc):
     return uhat, vhat
     
 def vector_R2(u, v, uhat, vhat):
+    '''
+    Coefficient of determination between ESP flow (uhat, vhat) and original flow (u, v)
+    '''
     m = np.isfinite(u) & np.isfinite(v) & np.isfinite(uhat) & np.isfinite(vhat)
     if not np.any(m):
         return np.nan
