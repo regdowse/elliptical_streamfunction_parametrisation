@@ -11,6 +11,13 @@ def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None):
     l: The along track distance, 0 at the beginning
     VT: The tangential velocity i.e., the along-track velocity 
     VN: The normal velocity i.e., the across-track velocity 
+
+    parameters:
+    x0 is the point of closest approach (i.e., VN(x0)=0)
+    l0 and r0 is the eddy center postion along and across the transect, respectively.
+    w is the inner-core vorticity
+    Q is the deformation matrix
+    Omega is the angular velocity
     '''
     
     l, VT, VN = map(np.asarray, (l, VT, VN))
@@ -101,7 +108,7 @@ def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None):
 
 def project_sadcp_to_transect(x, y, u, v):
     '''
-    Project quasi-straight data to transect data i.e., length along transect, along-track and across-track velocities
+    Project quasi-straight data to transect data i.e., length along transect (l), along-track (VT) and across-track (VN) velocities
     '''
     x, y, u, v = map(np.asarray, (x, y, u, v))
     msk = np.isfinite(x) & np.isfinite(y) & np.isfinite(u) & np.isfinite(v)
@@ -143,12 +150,12 @@ def project_sadcp_to_transect(x, y, u, v):
 
 def translate_solo_results(x_l_start, y_l_start, m, l0, r0):
     '''
-    Function to translate solo eddy center approximation to cartesian coordinates
+    Function to translate tranect eddy center (l0, r0) to cartesian eddy center (xc, yc)
     '''
     denom = np.sqrt(1 + m**2)
-    x0 = (l0 - r0*m)/denom + x_l_start
-    y0 = (l0*m + r0)/denom + y_l_start
-    return x0, y0
+    xc = (l0 - r0*m)/denom + x_l_start
+    yc = (l0*m + r0)/denom + y_l_start
+    return xc, yc
 
 # DOPPIO
 
@@ -156,6 +163,13 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
     '''
     1st transect (i.e., zonal) data: x1, y1, u1, v1
     2nd transect (i.e., meridional) data: x2, y2, u2, v2
+
+    parameters:
+    x0, y0 are inflection points (i.e., v1(x0)=0 and u2(y0)=0)
+    (xc, yc) is the eddy center
+    w is the inner-core vorticity
+    Q is the deformation matrix
+    Omega is the angular velocity
     '''
 
     def nan_return():
@@ -383,6 +397,16 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
 # LATTE
 
 def latte(xi, yi, ui, vi):
+    '''
+    ui, vi is the zonal and meridional velocity data
+    xi, yi is the zonal and meridional positions 
+
+    parameters:
+    (xc, yc) is the eddy center
+    w is the inner-core vorticity
+    Q is the deformation matrix
+    Omega is the angular velocity
+    '''
     from scipy.optimize import least_squares
     xi, yi, ui, vi = map(lambda a: np.asarray(a, float), (xi, yi, ui, vi))
     m = np.isfinite(xi) & np.isfinite(yi) & np.isfinite(ui) & np.isfinite(vi)
@@ -429,10 +453,10 @@ def latte(xi, yi, ui, vi):
     return xc, yc, w, Q, Omega, r2
 
 
-# Outer-core ESP paramter finder
+# Outer-core ESP parameter finder
     
 def out_core_param_fit(
-    rho2, Qr, vt,
+    xi, yi, ui, vi, xc, yc, Q,
     Omega0=None, Rc0=None,
     plot=False, ax=None,
     maxfev=10000, Rc_max=1e5,
@@ -440,12 +464,31 @@ def out_core_param_fit(
     rho_plot_max=None, n_curve=400,
     km_flag=False,
     ci_flag=False,
-    pred_flag=False,
+    pred_flag=False
 ):
+    r'''
+    rho2 is the elliptical radius sqared values ($\rho**2$)
+    Qr is Q(\mathbf{x_c}-
+    , vt
 
-    rho2 = np.asarray(rho2, float)
-    Qr   = np.asarray(Qr, float)
-    vt   = np.asarray(vt, float)
+    
+    Rc_opt, psi0_opt, Omega_opt
+    '''
+
+    dx = xi - xc
+    dy = yi - yc
+    q11, q12, q22 = Q[0,0], Q[1,0], Q[1,1]
+    rho2 = q11*dx**2 + 2*q12*dx*dy + q22*dy**2
+
+    vt = tangential_velocity(xi, yi, ui, vi, xc, yc, Q)
+    Qr = np.sqrt((q11*dx + q12*dy)**2 + (q12*dx + q22*dy)**2)
+
+    sign_mask = (vt <= 0) if (Omega0 < 0) else (vt >= 0)
+    rho2, Qr, vt = rho2[sign_mask], Qr[sign_mask], vt[sign_mask]
+
+    # rho2 = np.asarray(rho2, float)
+    # Qr   = np.asarray(Qr, float)
+    # vt   = np.asarray(vt, float)
 
     m = np.isfinite(rho2) & np.isfinite(Qr) & np.isfinite(vt) & (rho2 >= 0) & (Qr != 0)
     if not np.any(m):
@@ -725,9 +768,8 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     if len(rho2_f) == 0:
         return empty_return()
 
-    Rc, psi0, Omega_opt = out_core_param_fit(
-        rho2_f, Qr_f, vt_f, Omega0=Omega, plot=plot, pred_flag=True
-    )
+    Rc, psi0, Omega_opt = out_core_param_fit(xi_o, yi_o, ui_o, vi_o, xc, yc, Q, Omega0=Omega, plot=plot, pred_flag=True)
+    
     w = Omega_opt * (q11 + q22)
 
     df_row = pd.DataFrame([{
