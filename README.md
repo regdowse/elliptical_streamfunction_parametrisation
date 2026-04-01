@@ -4,7 +4,7 @@ This repository contains Python implementations of the ESPresso framework, inclu
 
 The repository is designed as a demonstration of how these methods can be applied, and the input datasets can be replaced with user-provided velocity data.
 
-The core python functions are provided in functions.py. The SOLO, DOPPIO, and LATTE methods are used to estimate the ESP inner-core parameters from velocity observations. These estimates can then be passed to the out_core_param_fit function, which uses the velocity data to determine the outer-core ESP parameters.
+The ESPresso python functions are provided in functions.py. The SOLO, DOPPIO, and LATTE methods are used to estimate the ESP inner-core parameters from velocity observations. These estimates can then be passed to the out_core_param_fit function, which uses the velocity data to determine the outer-core ESP parameters.
 
 Repository Structure
 .
