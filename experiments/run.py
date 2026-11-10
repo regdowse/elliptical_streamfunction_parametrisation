@@ -3,8 +3,10 @@
 Example: python experiments/run.py all
          python experiments/run.py noise_sampling --plot-only
          python experiments/run.py solo_idealised
+         python experiments/run.py idealised --plot-only
 
 The 'all' selector runs both supplementary sensitivity experiments.
+The 'idealised' selector runs SOLO, DOPPIO, LATTE and the schematic.
 """
 from pathlib import Path
 import argparse
@@ -42,7 +44,8 @@ def render(results, context, directory):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("experiment", choices=["all", "noise_sampling", "background_flow", "solo_idealised"])
+    parser.add_argument("experiment", choices=["all", "noise_sampling", "background_flow", "solo_idealised",
+                                               "doppio_idealised", "latte_idealised", "schematic", "idealised"])
     parser.add_argument("--config", type=Path, help="Defaults to the selected experiment's configuration")
     parser.add_argument("--output-root", type=Path, help="Override results root; relative paths are repository-relative")
     parser.add_argument("--replicates", type=int, help="Override noise replicate count, e.g. 2 for a smoke test")
@@ -50,6 +53,43 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.replicates is not None and (args.replicates < 1 or args.plot_only):
         parser.error("--replicates must be positive and cannot be used with --plot-only")
+    if args.experiment == "idealised":
+        if args.config is not None or args.replicates is not None:
+            parser.error("idealised uses each group's own default config; select one group for --config")
+        from experiments import solo, idealised
+        directories = []
+        for name in ("solo_idealised", *idealised.NAMES):
+            command = [name]
+            if args.plot_only:
+                command.append("--plot-only")
+            if args.output_root is not None:
+                command += ["--output-root",str(args.output_root)]
+            main(command)
+            config = solo.load_config() if name == "solo_idealised" else idealised.load_config(ROOT/f"experiments/configs/{name}.json",name)
+            directories.append(idealised.output_directory(config,args.output_root))
+        summary = directories[0].parent/"idealised_manuscript_summary.md"
+        summary.write_text("# Idealised experiments — combined manuscript results\n\n"+
+            "\n\n---\n\n".join((d/"manuscript_summary.md").read_text() for d in directories))
+        print(f"Combined manuscript summary: {summary}",flush=True)
+        return 0
+    if args.experiment in ("doppio_idealised", "latte_idealised", "schematic"):
+        if args.replicates is not None:
+            parser.error("These cases are deterministic; --replicates is inapplicable")
+        from experiments import idealised
+        from experiments.idealised_plotting import render as render_idealised
+        config_path = args.config or ROOT/f"experiments/configs/{args.experiment}.json"
+        values = idealised.load_config(config_path,args.experiment)
+        directory = idealised.output_directory(values,args.output_root)
+        if args.plot_only:
+            data,values = idealised.load_saved(directory,values)
+        else:
+            data = idealised.run_experiment(values)
+            directory = idealised.save_results(data,values,config_path,args.output_root)
+        render_idealised(data,values,directory)
+        print(f"{'Redrawn without fitting' if args.plot_only else 'Saved '+args.experiment}: {directory}",flush=True)
+        if not args.plot_only and "parameters" in data:
+            print(f"Full fits accepted: {data['parameters'].status.eq('optimized').sum()}/{len(data['parameters'])}",flush=True)
+        return 0
     if args.experiment == "solo_idealised":
         if args.replicates is not None:
             parser.error("SOLO idealised cases are deterministic; --replicates is inapplicable")

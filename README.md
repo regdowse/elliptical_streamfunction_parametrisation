@@ -42,12 +42,14 @@ yet included.
 │   └── *.ipynb                  # four existing application notebooks
 ├── experiments/
 │   ├── README.md                # idealised experiment instructions
-│   ├── configs/                 # SOLO and shared sensitivity configurations
+│   ├── configs/                 # idealised groups and shared sensitivity settings
 │   ├── run.py                   # run experiments or redraw saved results
 │   ├── sensitivity.py
 │   ├── plotting.py
 │   ├── solo.py
 │   ├── solo_plotting.py
+│   ├── idealised.py
+│   ├── idealised_plotting.py
 │   └── outputs.py
 └── results/                     # generated locally; gitignored
     ├── applications/
@@ -95,15 +97,17 @@ does not require running scripts.
 
 ## Run idealised experiments
 
-Generate the SOLO proximity/length, outer-fit, MOCA-comparison and deformation figures:
+Generate all eight main-paper idealised figures (SOLO, DOPPIO, LATTE and the ESP schematic):
 
 ```bash
-python experiments/run.py solo_idealised
+python experiments/run.py idealised
 ```
 
-Figures, parameter tables and `manuscript_summary.md` are saved under
-`results/experiments/solo_idealised/`. Settings are in
-[`experiments/configs/solo_idealised.json`](experiments/configs/solo_idealised.json).
+Figures, parameter tables and individual manuscript summaries are saved under
+`results/experiments/<experiment>/`. The combined report is
+`results/experiments/idealised_manuscript_summary.md`. Settings are in
+[`experiments/configs/`](experiments/configs/). Run one group with
+`solo_idealised`, `doppio_idealised`, `latte_idealised` or `schematic`.
 Add `--plot-only` to redraw saved results without fitting again.
 
 Run the supplementary sensitivity tests:

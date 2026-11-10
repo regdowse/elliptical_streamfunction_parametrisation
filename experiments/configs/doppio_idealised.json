@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "experiment": "doppio_idealised",
+  "output_directory": "results/experiments",
+  "truth": {"xc_m": 0, "yc_m": 0, "rc_m": 85000, "psi0_m2_s": 250000, "Q_input": [[1, 0.4], [0.4, 1]]},
+  "cases": [
+    {"name": "EP1", "intersection_m": [10000, 10000], "half_length_m": 30000, "step_m": 10000},
+    {"name": "EP2", "intersection_m": [-25000, 25000], "half_length_m": 30000, "step_m": 10000},
+    {"name": "EP3", "intersection_m": [-30000, -30000], "half_length_m": 30000, "step_m": 10000},
+    {"name": "EL1", "intersection_m": [10000, 10000], "half_length_m": 20000, "step_m": 10000},
+    {"name": "EL2", "intersection_m": [10000, 10000], "half_length_m": 30000, "step_m": 10000},
+    {"name": "EL3", "intersection_m": [10000, 10000], "half_length_m": 40000, "step_m": 10000}
+  ],
+  "inversion": {"outer_Rc_max_m": null},
+  "comparison_tolerances": {"centre_error_m": 1000, "vorticity_error_s_1": 1e-7,
+    "Omega_error_s_1": 1e-7, "aspect_ratio_error": 0.005, "Rc_error_m": 1000},
+  "plot": {"limits_km": [-100, 100], "grid_limits_m": [-250000, 250000], "grid_points": 501,
+    "quiver_stride": 10, "quiver_scale": 40, "velocity_limits_m_s": [-4, 4],
+    "outer_radius_limit_km": 120, "colors": ["red", "green", "blue"], "dpi": 300, "formats": ["pdf", "png"]}
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "experiment": "schematic",
+  "output_directory": "results/experiments",
+  "truth": {"xc_m": 0, "yc_m": 0, "rc_m": 85000, "psi0_m2_s": 250000, "Q_input": [[1, 0], [0, 1]]},
+  "sampling_grid": {"limits_m": [-250000, 250000], "step_m": 1000},
+  "sampling": {"seed": 20261110, "core_count": 40, "outer_count": 60,
+    "core_radius_m": 30000, "outer_radius_m": 120000, "sample_radius_m": 175000,
+    "initial_guess_m": [15000, 15000]},
+  "plot": {"limits_km": [-150, 150], "quiver_scale": 22,
+    "colors": ["orange", "magenta", "limegreen"], "dpi": 300, "formats": ["pdf", "png"]}
+}

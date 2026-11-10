@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "experiment": "latte_idealised",
+  "output_directory": "results/experiments",
+  "truth": {"xc_m": 0, "yc_m": 0, "rc_m": 85000, "psi0_m2_s": 250000, "Q_input": [[1, 0.4], [0.4, 1]]},
+  "sampling_grid": {"limits_m": [-250000, 250000], "step_m": 1000},
+  "sampling": {
+    "ship": {"y_limits_m": [-50000, 50000], "count": 15, "x_amplitude_m": 25000, "y_scale_m": 15000, "x_offset_m": -5000},
+    "drifter": {"initial_m": [8535.6055, 1828.8253], "dt_s": 6000, "steps": 30},
+    "transects": [
+      {"start_m": [-25000, -45000], "end_m": [0, 40000], "count": 10},
+      {"start_m": [-25000, 50000], "end_m": [25000, -50000], "count": 10}
+    ],
+    "grid": {"limits_m": [-50000, 50000], "step_m": 20000, "endpoint": false}
+  },
+  "inversion": {"outer_Rc_max_m": null},
+  "plot": {"limits_km": [-75, 75], "grid_limits_m": [-250000, 250000], "grid_points": 501,
+    "quiver_stride": 10, "quiver_scale": 40, "outer_radius_limit_km": 100,
+    "colors": ["tab:orange", "tab:green", "tab:red", "tab:pink"], "dpi": 300, "formats": ["pdf", "png"]}
+}

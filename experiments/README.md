@@ -4,6 +4,24 @@ Scripts run controlled tests using the general estimators in the root
 [`functions.py`](../functions.py). Real-data demonstrations remain in
 [`applications/`](../applications/README.md).
 
+## Run all main-paper idealised figures
+
+```bash
+python experiments/run.py idealised
+python experiments/run.py idealised --plot-only
+```
+
+This runs SOLO, DOPPIO, LATTE and the ESP schematic with their own configurations.
+Together they export the eight main-paper idealised figures as PDF and 300-dpi
+PNG, per-group results and **`results/experiments/idealised_manuscript_summary.md`**.
+That combined file contains all four manuscript summaries for transferring the
+current results into the paper. It is assembled only after every group completes.
+The schematic is illustrative and performs no parameter estimation.
+
+Use `--output-root results/experiments/my_run` for a separate run. A custom
+`--config` applies to one named experiment; the `idealised` group uses each
+experiment's default config. Generated results remain gitignored.
+
 ## SOLO validation
 
 ```bash
@@ -51,8 +69,100 @@ is written to `plot_metadata.json`.
 
 Use `--config path/to/config.json` to select another configuration and
 `--output-root results/experiments/my_run` to keep a separate run. Full runs
-overwrite their output directory. DOPPIO/LATTE idealised validation and the
-method schematic are not yet implemented in these scripts.
+overwrite their output directory.
+
+## DOPPIO validation and paired LATTE comparison
+
+```bash
+python experiments/run.py doppio_idealised
+python experiments/run.py doppio_idealised --plot-only
+```
+
+Configuration: [`configs/doppio_idealised.json`](configs/doppio_idealised.json).
+Outputs: `results/experiments/doppio_idealised/`.
+
+- `DOPPIO.pdf/png`: proximity cases on the truth field; all six sets of observed
+  velocities, stored cubic fits and their tangents. Dots are observations, solid
+  lines are cubics, faint dashed lines are tangents at the fitted roots.
+- `DOPPIO_outercore_fits.pdf/png`: the same six stored outer fits, with observed
+  points, faded extrapolation, predicted peak and true normalised peak radius.
+- `parameters.csv` and `manuscript_table.csv`: six DOPPIO fits and six LATTE fits
+  to matching unique observations, with inner/final rates kept separate.
+- `comparison.csv` and `comparison_table.csv`: paired absolute errors,
+  improvement percentages, thresholds, every exclusion reason and metric means.
+
+Both methods use Gaussian truth with Rc=85 km, psi0=250,000 m²/s and
+Q proportional to `[[1,0.4],[0.4,1]]`, normalised to determinant one.
+EP1–EP3 have cross intersections (10,10), (−25,25), (−30,−30) km and half
+length 30 km. EL1–EL3 use (10,10) km with half lengths 20/30/40 km. Each
+arm is sampled every 10 km, with both endpoints included. DOPPIO receives
+complete horizontal/vertical arms. LATTE and both outer fits receive their
+unique union, counting the shared intersection once. All observations are used
+for inner estimation; each method's own estimated centre and Q feed its outer fit.
+
+Improvement is `100*(LATTE error - DOPPIO error)/LATTE error`; positive favours
+DOPPIO. Entries are unavailable for failed paired fits, zero reference error,
+or differences below configured tolerances: 1 km (centre/Rc), 1e−7 s⁻¹ (rates),
+0.005 (aspect ratio). These thresholds affect the comparison table only; all
+attempts and raw errors remain saved. Means use full precision before rounding.
+Large valid errors are retained. Scientific settings, not the manuscript's old
+numerical values, determine the results.
+
+## LATTE validation
+
+```bash
+python experiments/run.py latte_idealised
+python experiments/run.py latte_idealised --plot-only
+```
+
+Configuration: [`configs/latte_idealised.json`](configs/latte_idealised.json).
+Outputs: `results/experiments/latte_idealised/`, including `figures/LATTE.pdf/png`,
+parameters, errors, manuscript table and summary. Four examples use the same
+elliptical truth as DOPPIO:
+
+| Example | Sampling |
+| --- | --- |
+| Ex1 | Sinusoidal ship transect, 15 points |
+| Ex2 | Exaggerated Euler drifter path, 30 post-update positions |
+| Ex3 | Two oblique transects, 10 points each |
+| Ex4 | 5×5 grid at −50, −30, −10, 10, 30 km in each coordinate |
+
+Velocities use bilinear interpolation from a 1-km truth grid, preserving the
+original off-grid sampling. The drifter advances by **6000 s (100 min)** for
+30 steps: 50 hours total. This is the SI equivalent of the original update
+using km positions, m/s velocities and `dt=6`; it is an exaggerated illustrative
+trajectory rather than a high-accuracy particle integrator. Leaving the sampling
+grid raises an error rather than silently clipping or inventing velocities.
+
+All points enter the inner estimator. Outer panels draw their saved fitted
+parameters and observations, without refitting for plotting. Reported vorticity
+uses final Omega times trace(Q); preliminary inner rates remain in the CSV.
+
+## ESP schematic
+
+```bash
+python experiments/run.py schematic
+python experiments/run.py schematic --plot-only
+```
+
+Configuration: [`configs/schematic.json`](configs/schematic.json).
+Outputs: `results/experiments/schematic/figures/ESP_schematic.pdf/png`, sampling,
+summary and metadata. The original circular sampling design is preserved:
+40 core draws, 60 outer draws, 30-km core circle, 120-km outer selection and
+175-km sampling extent, snapped to a 1-km grid. A fixed configurable seed makes
+this previously unseeded illustration repeatable. Known truth defines the
+illustrative masks; no estimator is run or fitted recovery accuracy claimed.
+
+## Saved results and redrawing
+
+All new groups save `sampling.csv`, `manuscript_summary.md`, `run_metadata.json`
+and `plot_metadata.json`. Fit groups also save unrounded parameters, diagnostics
+and curves in `curves.json`, and the display field in `field.npz`. Run metadata
+records the effective configuration, source/data hashes, Git state and versions.
+`--plot-only` verifies saved hashes, uses saved science and current presentation
+styles, and never fits or evaluates a velocity model. Numerical files, reports
+and original run metadata remain unchanged. Changing a scientific setting needs
+a full run; changing the sampling grid can change the experiment.
 
 ## Supplementary sensitivity experiments
 
@@ -81,8 +191,8 @@ python experiments/run.py noise_sampling
 python experiments/run.py background_flow
 ```
 
-`all` currently selects the two supplementary sensitivity experiments; run
-`solo_idealised` separately.
+`all` selects the two supplementary sensitivity experiments. Use `idealised`
+for all four main-paper groups; the two selections are independent.
 
 The default design produces **2,709 noise trial records** (including nine clean
 baselines) and **23 background-flow records**. Every attempted trial is retained,
@@ -215,6 +325,9 @@ fitting self-tests. Changing statistical percentiles requires a full run.
 - [`outputs.py`](outputs.py): manuscript reports, tables and provenance.
 - [`solo.py`](solo.py): SOLO validation design, shared-method calls and saved results.
 - [`solo_plotting.py`](solo_plotting.py): the four SOLO figures from saved fits.
+- [`idealised.py`](idealised.py): DOPPIO/LATTE sampling, shared estimators,
+  paired error scoring, schematic sampling and results/provenance.
+- [`idealised_plotting.py`](idealised_plotting.py): the remaining four figures.
 
 Self-tests verify sampling counts/symmetry, exact HIGH-coordinate reuse,
 intersection handling, streamfunction derivative signs, Uref, final-Omega error
