@@ -24,8 +24,9 @@ observations to refine angular velocity and estimate Gaussian radius and
 streamfunction amplitude.
 
 **Scope:** this repository contains four observational/numerical application
-notebooks and their input data. Generators for the manuscript’s idealised and
-sensitivity experiments are not included.
+notebooks and their input data, plus script-based supplementary noise/sampling
+and background-flow experiments. Other idealised validation experiments are not
+yet included.
 
 ## Repository contents
 
@@ -40,8 +41,14 @@ sensitivity experiments are not included.
 │   ├── configs/                  # one JSON per real-data demonstration
 │   └── *.ipynb                  # four existing application notebooks
 ├── experiments/
-│   ├── README.md                # planned idealised experiments
-│   └── configs/                 # reserved for their configurations
+│   ├── README.md                # idealised experiment instructions
+│   ├── configs/                 # SOLO and shared sensitivity configurations
+│   ├── run.py                   # run experiments or redraw saved results
+│   ├── sensitivity.py
+│   ├── plotting.py
+│   ├── solo.py
+│   ├── solo_plotting.py
+│   └── outputs.py
 └── results/                     # generated locally; gitignored
     ├── applications/
     └── experiments/
@@ -50,12 +57,12 @@ sensitivity experiments are not included.
 | Area | Purpose |
 | --- | --- |
 | [`applications/`](applications/README.md) | Real-data notebooks, configurations, dataset provenance and output instructions |
-| [`experiments/`](experiments/README.md) | Reserved home for idealised and sensitivity experiments; generators have not been added yet |
+| [`experiments/`](experiments/README.md) | Script-based idealised validation, sensitivity tests and figure/results exports |
 | [`functions.py`](functions.py) | Shared ESP estimation, reconstruction and selection/tracking helpers |
 | [`reporting.py`](reporting.py) | Configuration/path utilities and printed/exported results summaries |
 | [`data/`](data/) | Bundled ADCP, model, satellite and drifter extracts |
 
-Applications and future experiments use the same shared method implementations.
+Applications and experiments use the same shared method implementations.
 
 ## Installation
 
@@ -83,8 +90,41 @@ for manuscript updates; the CSV retains numerical precision and the JSON records
 configuration, versions, hashes, counts and fit statuses. Output files are replaced
 on rerun; choose another configured output directory to retain a separate run.
 
-The notebooks retain their existing figures and diagnostic plots. This structure
-does not require running scripts or add unimplemented idealised experiments.
+The notebooks retain their existing figures and diagnostic plots. The application workflow
+does not require running scripts.
+
+## Run idealised experiments
+
+Generate the SOLO proximity/length, outer-fit, MOCA-comparison and deformation figures:
+
+```bash
+python experiments/run.py solo_idealised
+```
+
+Figures, parameter tables and `manuscript_summary.md` are saved under
+`results/experiments/solo_idealised/`. Settings are in
+[`experiments/configs/solo_idealised.json`](experiments/configs/solo_idealised.json).
+Add `--plot-only` to redraw saved results without fitting again.
+
+Run the supplementary sensitivity tests:
+
+```bash
+python experiments/run.py all
+```
+
+This runs the noise/sampling and background-flow tests with the configured
+100 noise realisations per nonzero condition. It exports Figures S1–S3 as PDF/PNG,
+trial/summary tables and manuscript reports under `results/experiments/`.
+
+To redraw saved figures without fitting again:
+
+```bash
+python experiments/run.py all --plot-only
+```
+
+See the [experiment guide](experiments/README.md) for configuration, separate
+runs, quick checks and the output/provenance files. Jupyter is not needed for
+these experiments.
 
 ## Data sources
 

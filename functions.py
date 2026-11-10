@@ -51,6 +51,9 @@ def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None, selection_details=N
     w is the inner-core vorticity
     Q is the deformation matrix
     Omega is the angular velocity
+    selection_details, when supplied, also receives the fitted root and polynomial
+    coefficients: VT=A+B*(l-x0)**2 and VN=C*(l-x0)+D*(l-x0)**3.
+    These describe the existing fit; requesting them does not change the result.
     '''
     
     l, VT, VN = map(np.asarray, (l, VT, VN))
@@ -111,6 +114,9 @@ def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None, selection_details=N
     Q = np.array([[1., 0.], [0., 1.]])
     Omega =  C 
     w = 2 * Omega
+
+    if selection_details is not None:
+        selection_details.update(x0=x0, A=A, B=B, C=C, D=D)
 
     if plot:
         lfit = np.linspace(l.min(), l.max(), 500)
