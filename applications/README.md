@@ -91,6 +91,11 @@ remain interactive notebook outputs. The final time-series plot in
 It compares multi-platform and drifter-only LATTE, with Rc and Gaussian velocity
 R² shown only for the multi-platform reconstruction.
 
+`DOPPIO_gridded_data.ipynb` also exports manuscript Figure 10 as
+`figures/doppio_num_analysis.pdf` and `.png`. Its five snapshots are configured
+by UTC date in `plot.analysis_snapshots_utc` in `configs/doppio.json`, with the
+configured snapshot tolerance. Missing snapshots raise an explicit error.
+
 ## Datasets and provenance
 
 The bundled files are study extracts, not the complete source archives. File

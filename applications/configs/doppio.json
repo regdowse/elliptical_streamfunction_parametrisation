@@ -35,7 +35,14 @@
     "quiver_scale": 20,
     "plot_data": true,
     "diagnostics": true,
-    "diagnostic_step_index": 10
+    "diagnostic_step_index": 10,
+    "analysis_snapshots_utc": [
+      "2023-12-05T00:00:00Z",
+      "2023-12-25T00:00:00Z",
+      "2023-12-28T00:00:00Z",
+      "2024-01-02T00:00:00Z",
+      "2024-01-20T00:00:00Z"
+    ]
   },
   "application": "doppio",
   "inputs": {
