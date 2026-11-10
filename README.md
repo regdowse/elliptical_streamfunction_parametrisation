@@ -34,6 +34,15 @@ gridded_numerical_data.nc:  Two-dimensional gridded surface velocity field from 
 satellite_data.nc:          Gridded satellite-derived surface velocity data. Used in: LATTE_app1_multiplatform_data.ipynb, LATTE_app2_multiplatform_data.ipynb
 drifter_data.nc:            Lagrangian drifter velocity observations at the ocean surface. Used in: LATTE_app2_multiplatform_data.ipynb
 
+CE23 timestamp correction (review revision, 10 November 2026):
+The two ship-ADCP notebooks use `decode_ce23_mat_time` to apply a dataset-specific
+12-hour subtraction validated against CSIRO Data Trawler UTC labels. Raw MAT
+values are unchanged. SOLO selection anchors shift with the decoder to retain
+the same observations. The ADCP–satellite LATTE example uses native satellite
+times to interpolate at the corrected ADCP mean; other products' clocks are
+unchanged. See [validation notes](validation/README.md) for comparisons, provenance,
+and checks. Saved outputs in the two affected notebooks have been cleared.
+
 Requirements:
 Python 3.9 or higher
 numpy

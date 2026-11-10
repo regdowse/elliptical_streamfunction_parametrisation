@@ -1,11 +1,44 @@
 import numpy as np
+from datetime import datetime, timedelta
 import pandas as pd
 from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+
+def decode_ce23_mat_time(tim_sadcp):
+    """Decode the original, uncorrected CE23 MAT timestamps as UTC labels.
+
+    Standard astronomical Julian conversion gives labels 12 h ahead of the
+    independently compared CSIRO Data Trawler UTC positions/velocities for
+    this dataset. Apply that empirical correction exactly once here. The raw
+    MAT values are preserved; returned datetime64 values represent UTC.
+    Do not use for already-corrected data or other instruments/products.
+    """
+    ref = datetime(2000, 1, 1, 12)
+    time = np.array([
+        ref + timedelta(days=float(jd) - 2451545.0)
+        for jd in np.asarray(tim_sadcp).ravel()
+    ], dtype="datetime64[ns]")
+    return time - np.timedelta64(12, "h")
+
+
+def interpolate_satellite_at_time(ds_sat, time):
+    """Interpolate native satellite samples to a UTC target within coverage."""
+    time = pd.Timestamp(time).to_datetime64()
+    times = ds_sat.time.values
+    if (not times.size or np.isnat(time)
+            or time < times.min() or time > times.max()):
+        raise ValueError(f"Satellite time coverage does not bracket ADCP target {time}; use native satellite samples.")
+    sat = ds_sat.interp(time=time)
+    valid = np.isfinite(sat.u.values) & np.isfinite(sat.v.values)
+    if not np.any(valid):
+        raise ValueError(f"No finite satellite velocity pairs at ADCP target {time}.")
+    return sat
+
+
 # SOLO 
-def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None):
+def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None, selection_details=None):
     from scipy.optimize import curve_fit
     '''
     l: The along track distance, 0 at the beginning
@@ -56,6 +89,11 @@ def solo(l, VT, VN, core_thresh=30_000, plot=False, ax=None):
 
     # focus on core
     mask = np.abs(l - x0) <= core_thresh
+    if selection_details is not None:
+        core_mask = np.zeros(m.shape, dtype=bool)
+        core_mask[np.flatnonzero(m)[mask]] = True
+        selection_details["core_mask"] = core_mask
+        selection_details["l_bounds"] = (x0 - core_thresh, x0 + core_thresh)
     l, VT, VN = l[mask], VT[mask], VN[mask]
 
     # refit
@@ -464,16 +502,16 @@ def out_core_param_fit(
     rho_plot_max=None, n_curve=400,
     km_flag=False,
     ci_flag=False,
-    pred_flag=False
+    pred_flag=False,
+    fit_details=None, core_mask=None
 ):
-    r'''
-    rho2 is the elliptical radius sqared values ($\rho**2$)
-    Qr is Q(\mathbf{x_c}-
-    , vt
+    """Fit outer-core parameters using positions/radii in metres and SI velocity.
 
-    
-    Rc_opt, psi0_opt, Omega_opt
-    '''
+    km_flag affects display coordinates only. Supply a mutable fit_details dict
+    to retain the fitted samples, covariance and parameters for plotting later
+    without refitting. core_mask, when supplied, indexes the input observations.
+    The default return values and numerical fitting procedure are unchanged.
+    """
 
     dx = xi - xc
     dy = yi - yc
@@ -484,6 +522,7 @@ def out_core_param_fit(
     Qr = np.sqrt((q11*dx + q12*dy)**2 + (q12*dx + q22*dy)**2)
 
     sign_mask = (vt <= 0) if (Omega0 < 0) else (vt >= 0)
+    observation_indices = np.flatnonzero(sign_mask)
     rho2, Qr, vt = rho2[sign_mask], Qr[sign_mask], vt[sign_mask]
 
     # rho2 = np.asarray(rho2, float)
@@ -545,71 +584,64 @@ def out_core_param_fit(
     dof = max(len(vt) - 2, 1)
     sigma2 = ss_res / dof
 
+    # Preserve the actual fitted samples, parameters and uncertainty for display.
+    # All physical quantities remain in SI; only plot coordinates are converted.
+    details = dict(rho=rho.copy(), vt=vt.copy(), Omega=Omega_opt, Rc=Rc_opt,
+                   psi0=psi0_opt, R2=R2, pcov=pcov, sigma2=sigma2,
+                   observation_indices=observation_indices,
+                   core_mask=(np.asarray(core_mask, dtype=bool)[observation_indices]
+                              if core_mask is not None else rho <= 30_000))
+    if fit_details is not None:
+        fit_details.update(details)
     if plot:
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        if rho_plot_max is None:
-            rho_plot_max = np.nanmax(rho)
-
-        r_grid = np.linspace(0, rho_plot_max, n_curve)
-        r2_grid = r_grid**2
-
-        vt_grid = vt_model(r2_grid, np.abs(Omega_opt), Rc_opt)
-
-        if km_flag:
-            core_mask = rho <= 30
-        else:
-            core_mask = rho <= 30_000
-
-        ax.scatter(rho[core_mask], np.abs(vt[core_mask]), s=10, color='m', label='Inner-core \nobserved')
-        ax.scatter(rho[~core_mask], np.abs(vt[~core_mask]), s=10, color='g', label='Outer-core \nobserved')
-
-        ax.plot(r_grid, np.abs(vt_grid), lw=2, color='b', label='')
-        ax.axvline(Rc_opt / np.sqrt(2), ls='--', color='r', label='', lw=2)
-
-        if pcov is not None:
-
-            exp_term = np.exp(-r2_grid / (Rc_opt**2))
-
-            dOmega = np.sqrt(r2_grid) * exp_term
-            dRc = 2 * Omega_opt * (r2_grid**1.5) * exp_term / (Rc_opt**3)
-
-            J = np.vstack([dOmega, dRc]).T
-            var_model = np.einsum("ij,jk,ik->i", J, pcov, J)
-
-            if ci_flag:
-                se_model = np.sqrt(np.maximum(var_model, 0))
-                lo = vt_grid - 1.96 * se_model
-                hi = vt_grid + 1.96 * se_model
-
-                ax.fill_between(
-                    r_grid, np.abs(lo), np.abs(hi),
-                    color='orange', alpha=.2, label='95% CI'
-                )
-
-            if pred_flag:
-                se_pred = np.sqrt(np.maximum(var_model + sigma2, 0))
-                lo = vt_grid - 1.96 * se_pred
-                hi = vt_grid + 1.96 * se_pred
-
-                ax.fill_between(
-                    r_grid, lo, hi,
-                    color='b', alpha=.15, label=''
-                )
-
-        ax.set_xlabel(r'$\rho$')
-        ax.set_ylabel(r'$|v_t^\star|$')
-
-        ax.set_title(
-            f"Omega={Omega_opt:.3g}, Rc={Rc_opt:.3g}, psi0={psi0_opt:.3g}, R²={R2:.2f}"
-        )
-        ax.set_ylim(0, None); ax.set_xlim(0, None)
-
-        ax.legend(loc='upper left')
+        plot_outer_core_fit(details, ax=ax, km_flag=km_flag,
+                            rho_plot_max=rho_plot_max, n_curve=n_curve,
+                            ci_flag=ci_flag, pred_flag=pred_flag)
 
     return (Rc_opt, psi0_opt, Omega_opt, R2) if r2_flag else (Rc_opt, psi0_opt, Omega_opt)
+
+
+def plot_outer_core_fit(fit, ax=None, km_flag=True, rho_plot_max=None,
+                        n_curve=400, ci_flag=False, pred_flag=True):
+    """Display a stored SI outer fit without running an optimizer.
+
+    `fit` is populated by out_core_param_fit(fit_details=...). Its core_mask
+    records membership in the actual inner-core fit. rho_plot_max is in metres;
+    km_flag converts every horizontal plot coordinate, never physical inputs.
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+    rho, vt = fit["rho"], fit["vt"]
+    Omega, Rc = fit["Omega"], fit["Rc"]
+    core = fit["core_mask"]
+    scale = 1e3 if km_flag else 1.0
+    r = np.linspace(0, np.max(rho) if rho_plot_max is None else rho_plot_max, n_curve)
+    signed_curve = Omega * r * np.exp(-r**2 / Rc**2)
+    curve = np.abs(signed_curve)
+    ax.scatter(rho[core] / scale, np.abs(vt[core]), s=10, color="m", label="Inner-core \nobserved")
+    ax.scatter(rho[~core] / scale, np.abs(vt[~core]), s=10, color="g", label="Outer-core \nobserved")
+    ax.plot(r / scale, curve, lw=2, color="b", label="")
+    ax.axvline(Rc / np.sqrt(2) / scale, ls="--", color="r", lw=2)
+    if fit["pcov"] is not None:
+        exp_term = np.exp(-r**2 / Rc**2)
+        J = np.column_stack([r * exp_term, 2 * Omega * r**3 * exp_term / Rc**3])
+        var = np.einsum("ij,jk,ik->i", J, fit["pcov"], J)
+        for enabled, extra, color, label in [(ci_flag, 0, "orange", "95% CI"),
+                                             (pred_flag, fit["sigma2"], "b", "")]:
+            if enabled:
+                delta = 1.96 * np.sqrt(np.maximum(var + extra, 0))
+                lo, hi = signed_curve - delta, signed_curve + delta
+                # Transform the signed interval to the displayed magnitude.
+                lower = np.where((lo <= 0) & (hi >= 0), 0, np.minimum(np.abs(lo), np.abs(hi)))
+                upper = np.maximum(np.abs(lo), np.abs(hi))
+                ax.fill_between(r / scale, lower, upper, color=color, alpha=.15, label=label)
+    ax.set_xlabel(r"$\rho$ (km)" if km_flag else r"$\rho$ (m)")
+    ax.set_ylabel(r"$|v_t^\star|$ (m s$^{-1}$)")
+    ax.set_title(f"Omega={Omega:.3g}, Rc={Rc:.3g}, psi0={fit['psi0']:.3g}, R²={fit['R2']:.2f}")
+    ax.set_ylim(0, None)
+    ax.set_xlim(0, None)
+    ax.legend(loc="upper left")
+    return ax
 
 
 # Helper functions
@@ -673,14 +705,16 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
             "Omega": np.nan, "Rc": np.nan, "psi0": np.nan,
             "time": time, "alpha": np.nan
         }])
-        df_xyuv = pd.DataFrame(columns=["source", "core", "xi", "yi", "ui", "vi"])
-        df_fit = pd.DataFrame(columns=["rho2", "Qr", "vt"])
+        df_xyuv = pd.DataFrame(columns=["source", "platform", "core", "xi", "yi", "ui", "vi"])
+        df_fit = pd.DataFrame(columns=["rho2", "Qr", "vt", "platform"])
         return df_row, df_xyuv, df_fit
 
     t_mean = ds_sadcp.time.mean().values
     time = t_mean
 
-    sat_interp = ds_sat.interp(time=t_mean)
+    # ADCP-only fits remain independent of satellite temporal coverage.
+    sat_interp = (interpolate_satellite_at_time(ds_sat, t_mean)
+                  if source in ("multi", "sat") else ds_sat.interp(time=t_mean))
     X, Y = ds_sat.x.values, ds_sat.y.values
     xg, yg = X.ravel(), Y.ravel()
     ut, vt = sat_interp.u.values.ravel(), sat_interp.v.values.ravel()
@@ -697,14 +731,19 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     xd, yd, ud, vd = xd[sadcp_mask], yd[sadcp_mask], ud[sadcp_mask], vd[sadcp_mask]
 
     if source == "multi":
+        if not len(xd) or not len(xg):
+            raise ValueError("A multi-platform fit requires finite ADCP and satellite observations.")
         xi = np.concatenate([xd, xg])
         yi = np.concatenate([yd, yg])
         ui = np.concatenate([ud, ut])
         vi = np.concatenate([vd, vt])
+        platform = np.concatenate([np.full(len(xd), "sadcp"), np.full(len(xg), "sat")])
     elif source == "sadcp":
         xi, yi, ui, vi = xd, yd, ud, vd
+        platform = np.full(len(xd), "sadcp")
     elif source == "sat":
         xi, yi, ui, vi = xg, yg, ut, vt
+        platform = np.full(len(xg), "sat")
     else:
         return empty_return()
 
@@ -712,6 +751,11 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     rho2 = q11 * dx**2 + 2 * q12 * dx * dy + q22 * dy**2
     core1 = rho2 <= rho_core**2
 
+    def require_platforms(mask, stage):
+        if source == "multi" and set(platform[mask]) != {"sadcp", "sat"}:
+            raise ValueError(f"Multi-platform {stage} selection must include both ADCP and satellite observations.")
+
+    require_platforms(core1, "initial inner-core")
     if not np.any(core1):
         return empty_return()
 
@@ -722,6 +766,7 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     rho2 = q11 * dx**2 + 2 * q12 * dx * dy + q22 * dy**2
     core2 = rho2 <= rho_core**2
 
+    require_platforms(core2, "refined inner-core")
     if not np.any(core2):
         return empty_return()
 
@@ -730,6 +775,7 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
 
     df_inner = pd.DataFrame({
         "source": source,
+        "platform": platform[core2],
         "core": "inner",
         "xi": xi[core2],
         "yi": yi[core2],
@@ -745,6 +791,7 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
 
     df_outer = pd.DataFrame({
         "source": source,
+        "platform": platform[outer_only],
         "core": "outer",
         "xi": xi[outer_only],
         "yi": yi[outer_only],
@@ -764,11 +811,19 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     rho2_f = rho2_o[sign_mask]
     Qr_f = Qr_o[sign_mask]
     vt_f = vt_o[sign_mask]
+    platform_f = platform[outer][sign_mask]
+    finite_fit = (np.isfinite(rho2_f) & np.isfinite(Qr_f) & np.isfinite(vt_f)
+                  & (rho2_f >= 0) & (Qr_f != 0))
+    if source == "multi" and set(platform_f[finite_fit]) != {"sadcp", "sat"}:
+        raise ValueError("Multi-platform outer fit must include both ADCP and satellite observations.")
 
     if len(rho2_f) == 0:
         return empty_return()
 
-    Rc, psi0, Omega_opt = out_core_param_fit(xi_o, yi_o, ui_o, vi_o, xc, yc, Q, Omega0=Omega, plot=plot, pred_flag=True)
+    outer_fit = {}
+    Rc, psi0, Omega_opt = out_core_param_fit(
+        xi_o, yi_o, ui_o, vi_o, xc, yc, Q, Omega0=Omega, plot=plot,
+        pred_flag=True, fit_details=outer_fit, core_mask=core2[outer])
     
     w = Omega_opt * (q11 + q22)
 
@@ -788,9 +843,11 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     df_fit = pd.DataFrame({
         "rho2": rho2_f,
         "Qr": Qr_f,
-        "vt": vt_f
+        "vt": vt_f,
+        "platform": platform_f
     })
 
+    df_fit.attrs["outer_fit"] = outer_fit
     return df_row, pd.concat([df_inner, df_outer], ignore_index=True), df_fit
 
 def axis_ratio_from_Q(Q):
@@ -852,13 +909,3 @@ def vector_R2(u, v, uhat, vhat):
     u0, v0 = np.mean(u), np.mean(v)
     tot2 = (u - u0)**2 + (v - v0)**2
     return 1 - np.sum(err2)/np.sum(tot2) if np.sum(tot2) > 0 else np.nan
-
-
-
-
-
-
-
-
-
-    
