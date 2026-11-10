@@ -197,7 +197,7 @@ def translate_solo_results(x_l_start, y_l_start, m, l0, r0):
 
 # DOPPIO
 
-def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
+def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False, fit_details=None):
     '''
     1st transect (i.e., zonal) data: x1, y1, u1, v1
     2nd transect (i.e., meridional) data: x2, y2, u2, v2
@@ -210,7 +210,12 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
     Omega is the angular velocity
     '''
 
-    def nan_return():
+    if fit_details is not None:
+        fit_details.clear()
+
+    def nan_return(reason="invalid_fit"):
+        if fit_details is not None:
+            fit_details["status"] = reason
         nan2 = np.full((2, 2), np.nan)
         coeffs = pd.DataFrame(
             np.nan,
@@ -268,6 +273,8 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
     # Unconstrained cubic fits used only to estimate x0 and y0
     x0_guess = find_root(x, v1)
     y0_guess = find_root(y, u2)
+    if not np.isfinite([x0_guess, y0_guess]).all():
+        return nan_return("no_real_polynomial_root")
 
     pA = np.polyfit(x, u1, 3)[::-1]
     pB = np.polyfit(x, v1, 3)[::-1]
@@ -300,8 +307,10 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
         b1 = B1 + 2*B2*x0 + 3*B3*x0**2
         c1 = C1 + 2*C2*y0 + 3*C3*y0**2
 
-        B0 = -x0 * b1 # V1(x0)=0 
-        C0 = -y0 * c1 # U2(y0)=0 
+        # These are unshifted cubics. Subtract the polynomial value, not
+        # root * derivative; the latter is only correct for a linear function.
+        B0 = -(B1*x0 + B2*x0**2 + B3*x0**3)  # V1(x0)=0
+        C0 = -(C1*y0 + C2*y0**2 + C3*y0**3)  # U2(y0)=0
         D1 = -a1 - 2*D2*y0 - 3*D3*y0**2 # d1=-a1
 
         A = np.array([A0, A1, A2, A3], dtype=float)
@@ -321,10 +330,13 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
 
         return np.r_[U1 - u1, V1 - v1, U2 - u2, V2 - v2]
 
-    res = least_squares(residuals, p0, method='trf')
+    try:
+        res = least_squares(residuals, p0, method='trf', x_scale='jac')
+    except (ValueError, RuntimeError, np.linalg.LinAlgError):
+        return nan_return("optimizer_failed")
 
     if not res.success:
-        return nan_return()
+        return nan_return("optimizer_failed")
 
     x0, y0, A, B, C, D = unpack(res.x)
 
@@ -366,6 +378,12 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
     yc = (a0*b1 - a1*d0) / Omega**2
 
     w = Omega * (Q[0,0] + Q[1,1])
+    if not is_elliptical_Q(Q):
+        return nan_return("invalid_geometry")
+    if fit_details is not None:
+        fit_details.update(status="optimized", x_root=x0, y_root=y0,
+                           A=A.copy(), B=B.copy(), C=C.copy(), D=D.copy(),
+                           coordinate_origin=(center_x, center_y))
 
     coeffs = pd.DataFrame(
         {
@@ -434,7 +452,7 @@ def doppio(x1, y1, u1, v1, x2, y2, u2, v2, plot=False):
 
 # LATTE
 
-def latte(xi, yi, ui, vi):
+def latte(xi, yi, ui, vi, fit_details=None):
     '''
     ui, vi is the zonal and meridional velocity data
     xi, yi is the zonal and meridional positions 
@@ -446,12 +464,34 @@ def latte(xi, yi, ui, vi):
     Omega is the angular velocity
     '''
     from scipy.optimize import least_squares
-    xi, yi, ui, vi = map(lambda a: np.asarray(a, float), (xi, yi, ui, vi))
+    if fit_details is not None:
+        fit_details.clear()
+
+    def failed(reason):
+        if fit_details is not None:
+            fit_details["status"] = reason
+        return np.nan, np.nan, np.nan, np.full((2, 2), np.nan), np.nan, np.nan
+
+    xi, yi, ui, vi = map(lambda a: np.asarray(a, float).ravel(), (xi, yi, ui, vi))
+    if len({a.size for a in (xi, yi, ui, vi)}) != 1:
+        raise ValueError("LATTE position/velocity arrays must have equal lengths.")
     m = np.isfinite(xi) & np.isfinite(yi) & np.isfinite(ui) & np.isfinite(vi)
     x, y, u_i, v_i = xi[m], yi[m], ui[m], vi[m]
     n = x.size
     if n < 3:
-        return np.nan, np.nan, np.nan, np.full((2,2), np.nan), np.nan, np.nan
+        return failed("insufficient_samples")
+
+    # A collinear/degenerate sample cannot identify the full 2-D affine flow.
+    scale = max(np.ptp(x), np.ptp(y))
+    if scale == 0:
+        return failed("rank_deficient_sampling")
+    dx, dy = (x-x.mean()) / scale, (y-y.mean()) / scale
+    design = np.zeros((2*n, 5))
+    design[:n, 0], design[n:, 1] = 1, 1
+    design[:n, 3], design[:n, 4] = -dx, -dy
+    design[n:, 2], design[n:, 3] = dx, dy
+    if np.linalg.matrix_rank(design) < 5:
+        return failed("rank_deficient_sampling")
 
     p0 = np.array([x.mean(), y.mean(), 1., 0., 1.])  # xc,yc,Oq11,Oq12,Oq22
 
@@ -473,7 +513,13 @@ def latte(xi, yi, ui, vi):
         J[n:,0], J[n:,1], J[n:,2], J[n:,3] = -Oq11, -Oq12, dx, dy
         return J
 
-    xc,yc,Oq11,Oq12,Oq22 = least_squares(fun, p0, jac=jac).x
+    try:
+        result = least_squares(fun, p0, jac=jac)
+    except (ValueError, RuntimeError, np.linalg.LinAlgError):
+        return failed("optimizer_failed")
+    if not result.success or not np.isfinite(result.x).all():
+        return failed("optimizer_failed")
+    xc,yc,Oq11,Oq12,Oq22 = result.x
 
     dx, dy = x-xc, y-yc
     u = -Oq22*dy - Oq12*dx
@@ -485,10 +531,81 @@ def latte(xi, yi, ui, vi):
     w = Oq11+Oq22
     OQ = np.array([[Oq11,Oq12],[Oq12,Oq22]])
     det = OQ[0,0]*OQ[1,1] - OQ[0,1]*OQ[1,0]
-    Omega = np.sign(Oq11)*np.sqrt(abs(det))
+    # OQ must be definite (either rotation sign), never hyperbolic/indefinite.
+    if not np.isfinite(det) or det <= 0:
+        return failed("non_elliptic_flow")
+    Omega = np.sign(Oq11)*np.sqrt(det)
     Q = OQ/Omega if Omega != 0 else np.full((2,2), np.nan)
+    if not is_elliptical_Q(Q):
+        return failed("invalid_geometry")
+    if fit_details is not None:
+        fit_details.update(status="optimized", sample_count=n)
 
     return xc, yc, w, Q, Omega, r2
+
+
+def is_elliptical_Q(Q, require_det_one=True):
+    """True only for a finite symmetric positive-definite ESP geometry."""
+    Q = np.asarray(Q, dtype=float)
+    if Q.shape != (2, 2) or not np.isfinite(Q).all():
+        return False
+    if not np.allclose(Q, Q.T, rtol=1e-10, atol=1e-12):
+        return False
+    if np.linalg.eigvalsh(Q).min() <= 0:
+        return False
+    return (not require_det_one or
+            bool(np.isclose(np.linalg.det(Q), 1, rtol=1e-6, atol=1e-8)))
+
+
+def refine_latte(xi, yi, ui, vi, center=(0.0, 0.0), Q_pre=None,
+                 rho_core=35_000.0, fit_details=None):
+    """Two-stage inner fit: refine the centre AND ellipse using stage one's Q.
+
+    Invalid/non-elliptic fits return NaN parameters with a recorded stage/status.
+    This function does not advance tracking state; only an accepted fit may do so.
+    """
+    Q_pre = np.eye(2) if Q_pre is None else np.asarray(Q_pre, float)
+    if not is_elliptical_Q(Q_pre) or not np.isfinite(center).all() or rho_core <= 0:
+        raise ValueError("A finite centre, positive radius and valid ESP seed Q are required.")
+    arrays = [np.asarray(a, float).ravel() for a in (xi, yi, ui, vi)]
+    if len({a.size for a in arrays}) != 1:
+        raise ValueError("Position/velocity arrays must have equal lengths.")
+    x, y, u, v = arrays
+
+    def mask_at(c, Q):
+        dx, dy = x-c[0], y-c[1]
+        rho2 = Q[0, 0]*dx**2 + 2*Q[0, 1]*dx*dy + Q[1, 1]*dy**2
+        return rho2 <= rho_core**2
+
+    initial = mask_at(center, Q_pre)
+    stage = {}
+    result = latte(x[initial], y[initial], u[initial], v[initial], fit_details=stage)
+    details = dict(initial_mask=initial, refined_mask=np.zeros(len(x), dtype=bool),
+                   status="initial_" + stage["status"])
+    if stage["status"] == "optimized":
+        details["preliminary_Q"] = result[3].copy()
+        details["preliminary_center"] = result[:2]
+        refined = mask_at(result[:2], result[3])
+        details["refined_mask"] = refined
+        result = latte(x[refined], y[refined], u[refined], v[refined], fit_details=stage)
+        details["status"] = "optimized" if stage["status"] == "optimized" else "refined_" + stage["status"]
+    if fit_details is not None:
+        fit_details.clear()
+        fit_details.update(details)
+    return result
+
+
+def tracking_acceptance(previous_center, result, rotation_sign=None, max_step=100_000.0):
+    """Accept a valid ellipse only within the step limit from the last accepted centre."""
+    xc, yc, w, Q, Omega = result[:5]
+    if not np.isfinite([xc, yc, w, Omega]).all() or not is_elliptical_Q(Q):
+        return False, "invalid inner fit or non-elliptic geometry"
+    step = np.hypot(xc-previous_center[0], yc-previous_center[1])
+    if not np.isfinite(step) or step >= max_step:
+        return False, f"displacement {step:g} m from last accepted centre exceeds limit {max_step:g} m"
+    if w == 0 or (rotation_sign is not None and np.sign(w) != rotation_sign):
+        return False, "rotation sign differs from the first accepted fit"
+    return True, "accepted"
 
 
 # Outer-core ESP parameter finder
@@ -497,7 +614,7 @@ def out_core_param_fit(
     xi, yi, ui, vi, xc, yc, Q,
     Omega0=None, Rc0=None,
     plot=False, ax=None,
-    maxfev=10000, Rc_max=1e5,
+    maxfev=10000, Rc_max=None,
     r2_flag=False,
     rho_plot_max=None, n_curve=400,
     km_flag=False,
@@ -505,104 +622,128 @@ def out_core_param_fit(
     pred_flag=False,
     fit_details=None, core_mask=None
 ):
-    """Fit outer-core parameters using positions/radii in metres and SI velocity.
+    """Fit SI outer-core parameters; failed fits return NaNs, never guesses.
 
-    km_flag affects display coordinates only. Supply a mutable fit_details dict
-    to retain the fitted samples, covariance and parameters for plotting later
-    without refitting. core_mask, when supplied, indexes the input observations.
-    The default return values and numerical fitting procedure are unchanged.
+    There is no default upper bound on the fitted Gaussian radius. Rc_max, if
+    supplied, is an explicit optimizer bound, independent of the observation
+    selection radius. A solution on that bound is reported as unavailable.
+    Coordinates/velocities are scaled internally for optimization and covariance
+    is converted back to SI. fit_details records status and stored plot data.
     """
+    arrays = [np.asarray(a, float).ravel() for a in (xi, yi, ui, vi)]
+    if len({a.size for a in arrays}) != 1:
+        raise ValueError("Outer-fit position/velocity arrays must have equal lengths.")
+    xi, yi, ui, vi = arrays
+    Q = np.asarray(Q, dtype=float)
+    if core_mask is not None and np.asarray(core_mask).shape != xi.shape:
+        raise ValueError("core_mask must match the input observations.")
+    if Rc_max is not None and (not np.isfinite(Rc_max) or Rc_max <= 1e-8):
+        raise ValueError("Rc_max must be None or a finite positive radius greater than 1e-8 m.")
+    if fit_details is not None:
+        fit_details.clear()
+    details = dict(status="not_fitted", rho=np.array([]), vt=np.array([]),
+                   observation_indices=np.array([], dtype=int), core_mask=np.array([], dtype=bool),
+                   Omega=np.nan, Rc=np.nan, psi0=np.nan, R2=np.nan,
+                   pcov=None, sigma2=np.nan, Rc_standard_error=np.nan)
 
-    dx = xi - xc
-    dy = yi - yc
-    q11, q12, q22 = Q[0,0], Q[1,0], Q[1,1]
-    rho2 = q11*dx**2 + 2*q12*dx*dy + q22*dy**2
-
-    vt = tangential_velocity(xi, yi, ui, vi, xc, yc, Q)
-    Qr = np.sqrt((q11*dx + q12*dy)**2 + (q12*dx + q22*dy)**2)
-
-    sign_mask = (vt <= 0) if (Omega0 < 0) else (vt >= 0)
-    observation_indices = np.flatnonzero(sign_mask)
-    rho2, Qr, vt = rho2[sign_mask], Qr[sign_mask], vt[sign_mask]
-
-    # rho2 = np.asarray(rho2, float)
-    # Qr   = np.asarray(Qr, float)
-    # vt   = np.asarray(vt, float)
-
-    m = np.isfinite(rho2) & np.isfinite(Qr) & np.isfinite(vt) & (rho2 >= 0) & (Qr != 0)
-    if not np.any(m):
+    def failed(status, message=""):
+        details.update(status=status, message=message)
         if fit_details is not None:
-            fit_details.update(status="no_finite_samples", rho=np.array([]))
+            fit_details.update(details)
         return (np.nan, np.nan, np.nan, np.nan) if r2_flag else (np.nan, np.nan, np.nan)
 
-    rho2 = rho2[m]
-    Qr   = Qr[m]
-    vt   = vt[m]
-
-    rho = np.sqrt(rho2)
-    vt = vt * (rho / Qr)
-
-    def vt_model(r2, Omega, Rc):
-        return Omega * np.sqrt(r2) * np.exp(-r2 / (Rc**2))
-
-    i = np.nanargmax(np.abs(vt))
-    rho_max = rho[i]
-
-    if Rc0 is None:
-        Rc0 = max(rho_max * np.sqrt(2), 1e-6)
-
+    if not is_elliptical_Q(Q) or not np.isfinite([xc, yc]).all():
+        return failed("invalid_geometry")
+    dx, dy = xi-xc, yi-yc
+    q11, q12, q22 = Q[0, 0], Q[0, 1], Q[1, 1]
+    rho2_all = q11*dx**2 + 2*q12*dx*dy + q22*dy**2
+    vt_all = tangential_velocity(xi, yi, ui, vi, xc, yc, Q)
+    Qr_all = np.hypot(q11*dx + q12*dy, q12*dx + q22*dy)
+    finite = np.isfinite(rho2_all) & np.isfinite(vt_all) & np.isfinite(Qr_all) & (rho2_all > 0) & (Qr_all > 0)
+    if not np.any(finite):
+        return failed("no_finite_samples")
     if Omega0 is None:
-        denom = rho * np.exp(-rho2 / (Rc0**2))
-        ok = np.abs(denom) > 0
-        Omega0 = np.nanmedian(vt[ok] / denom[ok]) if np.any(ok) else 0
+        rotation_sign = np.sign(np.median(vt_all[finite]))
+    elif not np.isfinite(Omega0):
+        return failed("invalid_initial_angular_velocity")
+    else:
+        rotation_sign = np.sign(Omega0)
+    if rotation_sign == 0:
+        return failed("undetermined_rotation_sign")
+    selected = finite & (rotation_sign * vt_all >= 0)
+    indices = np.flatnonzero(selected)
+    rho2, Qr = rho2_all[selected], Qr_all[selected]
+    rho = np.sqrt(rho2)
+    vt = vt_all[selected] * (rho / Qr)
+    details.update(rho=rho, vt=vt, observation_indices=indices,
+                   core_mask=(np.asarray(core_mask, bool)[indices] if core_mask is not None else rho <= 30_000))
+    if len(rho) < 3:
+        return failed("insufficient_samples", "At least three retained observations are needed for fit uncertainty.")
+    if np.ptp(rho) <= np.finfo(float).eps * max(1, np.max(rho)):
+        return failed("unidentifiable_radius", "Observations must span distinct radii.")
+    if Rc0 is None:
+        Rc0 = max(rho[np.argmax(np.abs(vt))] * np.sqrt(2), 1e-6)
+    if not np.isfinite(Rc0) or Rc0 <= 0:
+        return failed("invalid_initial_radius")
+    r_scale, v_scale = np.median(rho), np.max(np.abs(vt))
+    if v_scale == 0:
+        return failed("zero_velocity")
+    r = rho / r_scale
+    speed = np.abs(vt) / v_scale
+    if Omega0 is None:
+        denom = rho * np.exp(-rho2 / Rc0**2)
+        ok = denom > 0
+        Omega0 = rotation_sign * np.median(np.abs(vt[ok]) / denom[ok]) if np.any(ok) else np.nan
+    if not np.isfinite(Omega0) or Omega0 == 0:
+        return failed("invalid_initial_angular_velocity")
 
-    if not np.isfinite(Omega0):
-        Omega0 = 0
+    def profile(r, amplitude, radius):
+        return amplitude * r * np.exp(-(r / radius)**2)
 
-    pcov = None
-    fit_status = "optimized"
+    def jacobian(r, amplitude, radius):
+        e = np.exp(-(r / radius)**2)
+        return np.column_stack([r*e, 2*amplitude*r**3*e/radius**3])
+
+    upper = np.inf if Rc_max is None else Rc_max/r_scale
+    radius0 = Rc0/r_scale
+    if np.isfinite(upper):
+        radius0 = min(radius0, upper * (1-1e-6))
     try:
-        popt, pcov = curve_fit(
-            vt_model, rho2, vt,
-            p0=[Omega0, Rc0],
-            bounds=([-np.inf, 1e-8], [np.inf, np.inf]),
-            maxfev=maxfev
-        )
-        Omega_opt, Rc_opt = popt
-    except:
-        Omega_opt, Rc_opt = Omega0, Rc0
-        fit_status = "fallback_optimizer_exception"
-
-    if (not np.isfinite(Rc_opt)) or (Rc_opt > Rc_max):
-        Omega_opt, Rc_opt = Omega0, Rc0
-        pcov = None
-        fit_status = "fallback_radius_limit"
-
+        popt, pcov_scaled = curve_fit(
+            profile, r, speed, p0=[abs(Omega0)*r_scale/v_scale, radius0],
+            jac=jacobian, x_scale="jac",
+            bounds=([0, 1e-8/r_scale], [np.inf, upper]), maxfev=maxfev,
+            ftol=1e-10, xtol=1e-10, gtol=1e-10)
+    except (ValueError, RuntimeError, np.linalg.LinAlgError, FloatingPointError) as exc:
+        return failed("optimizer_failed", str(exc))
+    if not np.isfinite(popt).all() or np.any(popt <= 0):
+        return failed("nonfinite_or_zero_solution")
+    if Rc_max is not None and popt[1] >= upper * (1-1e-6):
+        return failed("radius_bound_reached", "Optimum reaches the caller-supplied Rc_max.")
+    if np.linalg.matrix_rank(jacobian(r, *popt)) < 2 or not np.isfinite(pcov_scaled).all():
+        return failed("unidentifiable_radius", "Fitted radius/covariance is numerically unresolved.")
+    linear_amplitude = np.dot(r, speed) / np.dot(r, r)
+    linear_ss = np.sum((speed-linear_amplitude*r)**2)
+    fitted_ss = np.sum((speed-profile(r, *popt))**2)
+    if linear_ss <= fitted_ss + 1e-12*np.dot(speed, speed):
+        return failed("unidentifiable_radius", "No Gaussian curvature is resolved relative to the infinite-radius linear limit.")
+    transform = np.diag([rotation_sign*v_scale/r_scale, r_scale])
+    pcov = transform @ pcov_scaled @ transform.T
+    Omega_opt, Rc_opt = rotation_sign*popt[0]*v_scale/r_scale, popt[1]*r_scale
     psi0_opt = -0.5 * Omega_opt * Rc_opt**2
-
-    vt_fit = vt_model(rho2, Omega_opt, Rc_opt)
-
-    ss_res = np.sum((vt - vt_fit)**2)
-    ss_tot = np.sum((vt - vt.mean())**2)
-    R2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
-
-    dof = max(len(vt) - 2, 1)
-    sigma2 = ss_res / dof
-
-    # Preserve the actual fitted samples, parameters and uncertainty for display.
-    # All physical quantities remain in SI; only plot coordinates are converted.
-    details = dict(status=fit_status, rho=rho.copy(), vt=vt.copy(), Omega=Omega_opt, Rc=Rc_opt,
-                   psi0=psi0_opt, R2=R2, pcov=pcov, sigma2=sigma2,
-                   observation_indices=observation_indices,
-                   core_mask=(np.asarray(core_mask, dtype=bool)[observation_indices]
-                              if core_mask is not None else rho <= 30_000))
+    vt_fit = Omega_opt * rho * np.exp(-rho2/Rc_opt**2)
+    ss_res = np.sum((vt-vt_fit)**2)
+    ss_tot = np.sum((vt-vt.mean())**2)
+    R2 = 1-ss_res/ss_tot if ss_tot > 0 else np.nan
+    details.update(status="optimized", Omega=Omega_opt, Rc=Rc_opt, psi0=psi0_opt,
+                   R2=R2, pcov=pcov, sigma2=ss_res/(len(vt)-2),
+                   Rc_standard_error=float(np.sqrt(max(pcov[1, 1], 0))))
     if fit_details is not None:
         fit_details.update(details)
     if plot:
         plot_outer_core_fit(details, ax=ax, km_flag=km_flag,
                             rho_plot_max=rho_plot_max, n_curve=n_curve,
                             ci_flag=ci_flag, pred_flag=pred_flag)
-
     return (Rc_opt, psi0_opt, Omega_opt, R2) if r2_flag else (Rc_opt, psi0_opt, Omega_opt)
 
 
@@ -616,6 +757,10 @@ def plot_outer_core_fit(fit, ax=None, km_flag=True, rho_plot_max=None,
     """
     if ax is None:
         _, ax = plt.subplots()
+    if fit.get("status", "optimized") != "optimized":
+        ax.text(.5, .5, "Outer fit unavailable: " + fit.get("status", "unknown"),
+                ha="center", va="center", transform=ax.transAxes, wrap=True)
+        return ax
     rho, vt = fit["rho"], fit["vt"]
     Omega, Rc = fit["Omega"], fit["Rc"]
     core = fit["core_mask"]
@@ -704,7 +849,7 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
 
     nanQ = np.full((2, 2), np.nan)
 
-    def empty_return():
+    def empty_return(status="no_selected_observations"):
         df_row = pd.DataFrame([{
             "source": source, "xc": np.nan, "yc": np.nan, "w": np.nan, "Q": nanQ,
             "Omega": np.nan, "Rc": np.nan, "psi0": np.nan,
@@ -712,6 +857,11 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
         }])
         df_xyuv = pd.DataFrame(columns=["source", "platform", "core", "xi", "yi", "ui", "vi"])
         df_fit = pd.DataFrame(columns=["rho2", "Qr", "vt", "platform"])
+        df_row["fit_status"] = status
+        df_fit.attrs["outer_fit"] = dict(status=status, rho=np.array([]))
+        df_fit.attrs["settings"] = dict(z=z0, xc_pre=xc_pre, yc_pre=yc_pre,
+                                        rho_core=rho_core, rho_outer=rho_outer)
+        df_fit.attrs["selection_counts"] = []
         return df_row, df_xyuv, df_fit
 
     t_mean = ds_sadcp.time.mean().values
@@ -764,18 +914,15 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     if not np.any(core1):
         return empty_return()
 
-    xc1, yc1, w1, Q1, Omega1, _ = latte(xi[core1], yi[core1], ui[core1], vi[core1])
-
-    q11, q12, q22 = Q1[0, 0], Q1[0, 1], Q1[1, 1]
-    dx, dy = xi - xc1, yi - yc1
-    rho2 = q11 * dx**2 + 2 * q12 * dx * dy + q22 * dy**2
-    core2 = rho2 <= rho_core**2
-
+    inner_details = {}
+    xc, yc, w, Q, Omega, _ = refine_latte(
+        xi, yi, ui, vi, center=(xc_pre, yc_pre),
+        Q_pre=np.array([[q11, q12], [q12, q22]]), rho_core=rho_core,
+        fit_details=inner_details)
+    if inner_details["status"] != "optimized":
+        return empty_return(inner_details["status"])
+    core2 = inner_details["refined_mask"]
     require_platforms(core2, "refined inner-core")
-    if not np.any(core2):
-        return empty_return()
-
-    xc, yc, w, Q, Omega, _ = latte(xi[core2], yi[core2], ui[core2], vi[core2])
     alpha = axis_ratio_from_Q(Q)
 
     df_inner = pd.DataFrame({
@@ -830,6 +977,7 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
         xi_o, yi_o, ui_o, vi_o, xc, yc, Q, Omega0=Omega, plot=plot,
         pred_flag=True, fit_details=outer_fit, core_mask=core2[outer])
     
+    w_core, Omega_core = w, Omega
     w = Omega_opt * (q11 + q22)
 
     df_row = pd.DataFrame([{
@@ -839,6 +987,9 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
         "w": w,
         "Q": Q,
         "Omega": Omega_opt,
+        "Omega_core": Omega_core,
+        "w_core": w_core,
+        "fit_status": outer_fit["status"],
         "Rc": Rc,
         "psi0": psi0,
         "time": time,
@@ -869,7 +1020,9 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     return df_row, pd.concat([df_inner, df_outer], ignore_index=True), df_fit
 
 def axis_ratio_from_Q(Q):
-    lam = np.abs(np.linalg.eigvalsh(Q))
+    if not is_elliptical_Q(Q):
+        return np.nan
+    lam = np.linalg.eigvalsh(Q)
     return np.sqrt(lam.max() / lam.min())
 
 def tangential_velocity(xp, yp, up, vp, xc, yc, Q, det1=False):
@@ -880,10 +1033,10 @@ def tangential_velocity(xp, yp, up, vp, xc, yc, Q, det1=False):
     if Q.shape == (3,):
         q11, q12, q22 = Q
         Q = np.array([[q11, q12], [q12, q22]], float)
+    if not is_elliptical_Q(Q, require_det_one=False):
+        raise ValueError("Tangential velocity requires a symmetric positive-definite Q.")
     if det1:
-        d = np.linalg.det(Q)
-        if d != 0:
-            Q /= np.sqrt(d)
+        Q = Q / np.sqrt(np.linalg.det(Q))
 
     xp, yp, up, vp = (np.asarray(a, float) for a in (xp, yp, up, vp))
     r   = np.stack((xp - xc, yp - yc), axis=-1)
@@ -899,9 +1052,11 @@ def tangential_velocity(xp, yp, up, vp, xc, yc, Q, det1=False):
     return vt
 
 def model_uv_at_xy(xi, yi, xc, yc, Q, Omega, Rc):
-    '''
-    ESP reconstructed velocities
-    '''
+    """ESP velocities; unavailable/invalid fit parameters give NaN predictions."""
+    xi, yi = np.broadcast_arrays(np.asarray(xi, float), np.asarray(yi, float))
+    Q = np.asarray(Q, float)
+    if not is_elliptical_Q(Q) or not np.isfinite([xc, yc, Omega, Rc]).all() or Rc <= 0:
+        return np.full(xi.shape, np.nan), np.full(yi.shape, np.nan)
     dx = xi - xc
     dy = yi - yc
 

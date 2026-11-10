@@ -71,10 +71,38 @@ time-series ranges and their dates. The drifter-only comparison reports inner-co
 results separately; unavailable outer-core parameters are not inferred.
 
 Outer-fit diagnostics distinguish normalized tangential-fit R² from reconstructed
-velocity R² and identify existing optimizer/radius-limit fallbacks. The summaries
+velocity R² and identify unsuccessful or unresolved fits. The summaries
 also print package versions and file hashes. They report the current computation;
 agreement with a manuscript or a reference publication run must be checked from
 those values. Reporting does not change the fitting calculations.
+
+Fitting and tracking:
+The outer fit has no default upper limit on the fitted Gaussian radius `Rc`.
+The 100-km observation-selection window is a separate sampling setting. An
+optional `Rc_max` passed to `out_core_param_fit` is an explicit optimizer bound;
+a solution reaching that bound is flagged as unavailable. Optimization uses
+scaled variables and returns covariance in SI units. Failures, degenerate radial
+sampling, and a numerically unresolved infinite-radius limit return NaN parameters,
+not initial guesses. Pass `fit_details={}` to retain the status and diagnostic data.
+The summaries include the fitted radius standard error; finite optimization does
+not by itself establish adequate outer-core sampling or physical model validity.
+
+LATTE rejects unsuccessful, rank-deficient or non-elliptic inner fits. Geometry
+must be symmetric positive-definite with determinant one; absolute determinants
+or eigenvalues are not used to disguise invalid ellipses. Invalid fits return NaN
+parameters; an optional `fit_details` dictionary records the reason. The two-stage
+selection uses the preliminary fitted centre and Q to refine the current sample.
+
+Tracking advances only after a valid inner fit is within the configured distance
+of the previous accepted centre and has the first accepted fit's rotation sign.
+Either clockwise or anticlockwise eddies are supported. A failed outer fit leaves
+its Gaussian reconstruction unavailable; separately stored `Omega_core` and
+`w_core` retain valid inner-fit estimates for inspection.
+
+DOPPIO retains its unshifted cubic basis. Its intercepts enforce the polynomial
+roots exactly, while tangent coefficients are evaluated at those roots. This is
+algebraically equivalent to shifting the polynomial to the root; the polynomial
+intercept and the tangent-line intercept are different quantities.
 
 Citation:
 If you use this code, please cite:

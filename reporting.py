@@ -24,7 +24,8 @@ def fit_record(time, fit, source="combined"):
     return {"time": time, "source": source,
             "outer_fit_n": len(fit.get("rho", [])),
             "outer_fit_status": fit.get("status", "unavailable"),
-            "R2_tangential": fit.get("R2", np.nan)}
+            "R2_tangential": fit.get("R2", np.nan),
+            "Rc_standard_error_m": fit.get("Rc_standard_error", np.nan)}
 
 
 def evaluation_counts(data):
@@ -84,6 +85,11 @@ def print_manuscript_summary(title, results, settings, counts=None, outer_record
             table[new] = pd.to_numeric(data[old], errors="coerce") / divisor if old in data else np.nan
         if "r2_latte" in data:
             table["R2_linear_core"] = data.r2_latte.to_numpy()
+        if "Omega_core" in data:
+            table["Omega_core_s-1"] = data.Omega_core.to_numpy()
+            table["omega_core_fit_s-1"] = data.w_core.to_numpy()
+        if "fit_status" in data:
+            table["fit_status"] = data.fit_status.to_numpy()
         if snapshot_time is not None:
             selected = table[table.time == pd.Timestamp(snapshot_time)]
             print(f"\nPLOTTED SNAPSHOT: {snapshot_time} UTC")
@@ -105,6 +111,8 @@ def print_manuscript_summary(title, results, settings, counts=None, outer_record
             if len(group) > 1:
                 ranges = []
                 for column in table.columns[2:]:
+                    if column == "fit_status":
+                        continue
                     valid = group[np.isfinite(group[column])]
                     if valid.empty:
                         continue
@@ -132,9 +140,9 @@ def print_manuscript_summary(title, results, settings, counts=None, outer_record
         print("\nOUTER-FIT DIAGNOSTICS (R2_tangential differs from manuscript velocity R²)")
         _table(outer)
         print("  Status counts:", outer.outer_fit_status.value_counts().to_dict())
-        print("  Fallback status means returned guesses, not a successful optimization.")
+        print("  Failed fits return unavailable parameters (NaN); initial guesses are never substituted.")
         if (outer.outer_fit_status != "optimized").any():
-            print("  Parameter tables/ranges include those returned fallback rows; consult their status before citing them.")
+            print("  Failed outer-fit rows retain valid inner geometry where available, but have no Gaussian reconstruction.")
     print("\nFIGURE AND INTERPRETATION NOTES")
     print("  x0/y0 are relative to the stated local origin; Rc is the Gaussian characteristic radius.")
     print("  Peak normalized tangential speed occurs at rho=Rc/sqrt(2), not at Rc.")
