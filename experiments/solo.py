@@ -30,6 +30,8 @@ def load_config(path=DEFAULT_CONFIG):
     truth = values["truth"]
     if not np.isfinite(list(truth.values())).all() or truth["rc_m"] <= 0 or truth["psi0_m2_s"] == 0:
         raise ValueError("Truth must be finite, with positive Rc and nonzero psi0")
+    if values["comparison"].get("interpretation") != "conceptual_inner_core":
+        raise ValueError("Figure 2 requires the conceptual_inner_core interpretation")
     names = [s["name"] for s in values["cases"]]
     if names != ["P1", "P2", "P3", "L1", "L2", "L3"]:
         raise ValueError("Supply six named cases P1–P3, L1–L3 in order")
@@ -134,17 +136,26 @@ def run_experiment(config):
             centre_error_m=np.hypot(row["xc_m"]-truth["xc_m"], row["yc_m"]-truth["yc_m"]),
             status="optimized" if np.isfinite([row["xc_m"],row["yc_m"],row["inner_Omega_s_1"]]).all() else "inner_failed")
         deformed.append(row)
-    # Both methods use precisely the same observed Gaussian vectors.
+    # Conceptual illustration: ideal inner-core inputs for SOLO, Gaussian data
+    # for the original MOCA regression. This is deliberately not a matched-input test.
     x,y,u,v = observe(config["comparison"], truth, np.eye(2))
-    row, _, details = inner_fit(x,y,u,v,config["inversion"]["solo_core_radius_m"])
-    row.update(method="SOLO", Omega_s_1=row["inner_Omega_s_1"])
-    pu, pv = np.polyfit(x,u,1), np.polyfit(x,v,1)
+    core_u = -omega*(y-truth["yc_m"])
+    core_v = omega*(x-truth["xc_m"])
+    row, _, details = inner_fit(x,y,core_u,core_v,config["inversion"]["solo_core_radius_m"])
+    row.update(method="SOLO", Omega_s_1=row["inner_Omega_s_1"], input_model="ideal_inner_core")
+    pu, pv = np.polyfit(x,u,0), np.polyfit(x,v,1)
     x0 = -pv[1]/pv[0]
     y0 = y[0]+np.polyval(pu,x0)/pv[0]
-    baseline = dict(method="MOCA", xc_m=x0, yc_m=y0, Omega_s_1=pv[0])
+    baseline = dict(method="MOCA", xc_m=x0, yc_m=y0, Omega_s_1=pv[0], input_model="Gaussian_observations")
     comparison = pd.DataFrame([row,baseline])
     comparison["centre_error_m"] = np.hypot(comparison.xc_m-truth["xc_m"],comparison.yc_m-truth["yc_m"])
-    details.update(moca_u=np.polyval(pu,x), moca_v=np.polyval(pv,x))
+    mid = len(x)//2
+    local_slope = (v[mid]-v[mid-1])/(x[mid]-x[mid-1])
+    details.update(core_input_u=core_u, core_input_v=core_v, u_m_s=u, v_m_s=v,
+        moca_u=np.polyval(pu,x), moca_v=np.polyval(pv,x),
+        illustration_u=np.full_like(x,np.max(u)),
+        illustration_v=local_slope*(x-truth["xc_m"]),
+        interpretation="conceptual_inner_core")
     curves["comparison"] = details
     lo,hi = config["plot"]["grid_limits_m"]
     axis = np.linspace(lo,hi,config["plot"]["grid_points"])
@@ -180,13 +191,13 @@ def write_report(data, config, directory):
         "## Errors", "",
         f"Maximum centre error: {params.centre_error_m.max()/1000:.9g} km; maximum Rc error: {params.Rc_error_m.max()/1000:.9g} km; maximum peak-radius error: {params.peak_radius_error_m.max()/1000:.9g} km.", "",
         "## MOCA comparison", "", markdown_table(comparison), "",
-        "Both methods use the same Gaussian observations, with the configured SOLO core selection. SOLO green lines are tangents of its fitted polynomials; MOCA uses linear regressions for both velocity components. No exact inner-core velocities, true centre or finite-difference slopes are substituted into the estimates.", "",
+        "Conceptual illustration of the proposed MOCA modification, matching the original figure. SOLO receives ideal inner-core (constant/linear) velocities; MOCA receives Gaussian observations with constant U and linear V regressions. Its near-perfect SOLO centre is an ideal-model result, not measured-data recovery. Green profile guides show the observed U maximum and the local finite-difference V slope, as in the original illustration; they are not claimed to be the polynomials fitted to the Gaussian observations. Inputs and guide arrays are saved explicitly in curves.json.", "",
         "## Deformation", "",
         "Q=[[1,q12],[q12,1]] / sqrt(1-q12²); fixed Gaussian Rc and psi0. Only inner SOLO centre estimates are used; there is no outer refit in this test.", "",
         markdown_table(deformation[["q12_input","aspect_ratio","xc_m","yc_m","centre_error_m","status"]]), "",
         "## Manuscript checks", "",
         "The default P transects have full length 140 km (half-length 70 km), not the 70-km length stated in the current manuscript. L lengths are 80/140/200 km. Sampling follows the actual calculations.",
-        "The previous comparison supplied exact inner-core velocities to SOLO but Gaussian observations to MOCA. This run corrects that unequal-input comparison. Recheck its claimed centre and rotation estimates.",
+        "Figure 2 uses different input models to illustrate the SOLO concept. Distinguish this idealised demonstration from the parameter-recovery tests and from a matched-input performance comparison in the manuscript.",
         "Deformation truth uses Omega=-2 psi0/Rc² and vorticity=Omega trace(Q), correcting the earlier factor-of-two truth label. Only centre error is plotted.",
         "Shared estimators use SI and the current corrected outer fitter; older manuscript values need checking against this run. Original run provenance and data hashes are in run_metadata.json.", ""]
     (directory/"manuscript_summary.md").write_text("\n".join(lines))

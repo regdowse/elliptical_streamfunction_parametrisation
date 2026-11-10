@@ -84,8 +84,12 @@ values still agree.
 
 **Rerunning replaces the three files in the configured output directory.** Set a
 new `output_dir` to keep a separate run. Restart and run all cells after changing
-configuration; export refuses a config edited after it was loaded. Figures remain
-interactive notebook outputs and are not automatically saved by this change.
+configuration; export refuses a config edited after it was loaded. Most figures
+remain interactive notebook outputs. The final time-series plot in
+`LATTE_app2_multiplatform_data.ipynb` also exports manuscript Figure 14 as
+`figures/latte_multi_analysis.pdf` and `.png` under its configured output directory.
+It compares multi-platform and drifter-only LATTE, with Rc and Gaussian velocity
+R² shown only for the multi-platform reconstruction.
 
 ## Datasets and provenance
 

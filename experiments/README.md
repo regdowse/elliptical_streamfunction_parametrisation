@@ -18,6 +18,20 @@ That combined file contains all four manuscript summaries for transferring the
 current results into the paper. It is assembled only after every group completes.
 The schematic is illustrative and performs no parameter estimation.
 
+
+Figure numbers follow the manuscript, including the intervening real-data figures:
+
+| Manuscript figure | Idealised output filename |
+| --- | --- |
+| 1 | `ESP_schematic.png` |
+| 2 | `Improved_MOCA.png` |
+| 3 | `SOLO.png` |
+| 4 | `SOLO_outercore_fits.png` |
+| 5 | `SOLO_AR_Err.png` |
+| 7 | `DOPPIO.png` |
+| 8 | `DOPPIO_outercore_fits.png` |
+| 11 | `LATTE.png` |
+
 Use `--output-root results/experiments/my_run` for a separate run. A custom
 `--config` applies to one named experiment; the `idealised` group uses each
 experiment's default config. Generated results remain gitignored.
@@ -35,9 +49,9 @@ The run produces four PDF/PNG figures under
 
 | Figure | Test |
 | --- | --- |
-| `SOLO` | Six transects varying proximity and full length; observations and fitted polynomials |
+| `SOLO` | Six transects varying proximity and full length; observations and inner-core linearisations |
 | `SOLO_outercore_fits` | Normalised tangential observations and stored outer fits for the same six cases |
-| `Improved_MOCA` | SOLO versus MOCA using identical Gaussian observations |
+| `Improved_MOCA` | Conceptual modification of MOCA using ideal inner-core SOLO inputs |
 | `SOLO_AR_Err` | Centre error over 17 determinant-one deformations, aspect ratios 1–3 |
 
 Default truth: circular Gaussian, Rc=85 km, psi0=250,000 m²/s, centre (0,0).
@@ -53,10 +67,12 @@ The run saves `parameters.csv` (including errors and fit status), `sampling.csv`
 parameter estimates, numerical claims and manuscript discrepancies. Provide it
 alongside the manuscript when updating its text.
 
-The MOCA comparison fits both methods to the same observations. Green lines
-are SOLO's fitted polynomial tangents. Exact inner-core velocities and numerical
-slopes are not substituted for fitted quantities. This correction changes the
-comparison results; existing manuscript values must be checked.
+The MOCA figure is a **conceptual illustration**, matching the original layout.
+SOLO receives ideal inner-core constant/linear velocities; MOCA receives the
+Gaussian observations. Green guides show the local observed U maximum and
+finite-difference V slope. Its near-perfect SOLO centre demonstrates the ideal
+model, rather than recovery from the same observations used by MOCA. This
+distinction is recorded in the report and must be clear in the manuscript.
 
 `curves.json` stores observations, coefficients and fit diagnostics; `field.npz`
 stores the display velocity field. `run_metadata.json` records the configuration,
@@ -82,8 +98,8 @@ Configuration: [`configs/doppio_idealised.json`](configs/doppio_idealised.json).
 Outputs: `results/experiments/doppio_idealised/`.
 
 - `DOPPIO.pdf/png`: proximity cases on the truth field; all six sets of observed
-  velocities, stored cubic fits and their tangents. Dots are observations, solid
-  lines are cubics, faint dashed lines are tangents at the fitted roots.
+  velocities and their inner-core linearisations. Solid lines are observations;
+  faint lines are tangents at the fitted roots, matching the original layout.
 - `DOPPIO_outercore_fits.pdf/png`: the same six stored outer fits, with observed
   points, faded extrapolation, predicted peak and true normalised peak radius.
 - `parameters.csv` and `manuscript_table.csv`: six DOPPIO fits and six LATTE fits
