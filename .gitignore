@@ -11,3 +11,6 @@ tests/
 
 # Generated application and experiment outputs.
 results/
+
+# Local reference notebooks for development.
+experiments/legacy/
