@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "coordinates": {
+    "longitude": 154.3,
+    "latitude": -37.9
+  },
+  "outer_fit": {
+    "maxfev": 10000,
+    "Rc_max_m": null
+  },
+  "analysis": {
+    "start_utc": null,
+    "end_utc": "2024-01-27T06:00:00Z",
+    "drifter_end_exclusive_utc": "2024-02-10T00:00:00Z",
+    "drifter_velocity_limit_m_s": 100.0,
+    "satellite_velocity_limit_m_s": 4.9,
+    "aggregation_half_window_hours": 24.0,
+    "daily_analysis_hour_utc": 6,
+    "initial_center_m": [
+      0.0,
+      0.0
+    ],
+    "initial_Q": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "core_radius_m": 35000.0,
+    "outer_radius_m": 100000.0,
+    "max_center_step_m": 100000.0
+  },
+  "plot": {
+    "snapshot_utc": "2023-10-29T06:00:00Z",
+    "snapshot_tolerance_hours": 1.0,
+    "x_limits_km": [
+      -410,
+      200
+    ],
+    "y_limits_km": [
+      -160,
+      260
+    ],
+    "quiver_spacing": 1,
+    "quiver_scale": 20,
+    "plot_data": true,
+    "diagnostics": true,
+    "diagnostic_step_index": 10
+  },
+  "application": "latte_drifter_satellite",
+  "inputs": {
+    "drifter": "data/drifter_data.nc",
+    "satellite": "data/satellite_data.nc"
+  },
+  "output_dir": "results/applications/latte_drifter_satellite"
+}

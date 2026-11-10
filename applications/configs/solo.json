@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "coordinates": {
+    "longitude": 154.3,
+    "latitude": -37.9
+  },
+  "outer_fit": {
+    "maxfev": 10000,
+    "Rc_max_m": null
+  },
+  "analysis": {
+    "latitude_max": -37.0,
+    "depth_m": 37.0,
+    "transect_center_utc": "2023-10-17T13:30:00Z",
+    "half_window_hours": 12.0,
+    "core_radius_m": 30000.0,
+    "outer_radius_m": 100000.0
+  },
+  "plot": {
+    "x_limits_km": [
+      -150,
+      150
+    ],
+    "y_limits_km": [
+      -150,
+      150
+    ],
+    "quiver_spacing": 10,
+    "quiver_scale": 15,
+    "diagnostics": true
+  },
+  "application": "solo",
+  "inputs": {
+    "sadcp": "data/sadcp_data.mat"
+  },
+  "output_dir": "results/applications/solo",
+  "reconstruction": {
+    "x_limits_m": [
+      -150000,
+      150000
+    ],
+    "y_limits_m": [
+      -150000,
+      150000
+    ],
+    "grid_points": 200
+  }
+}

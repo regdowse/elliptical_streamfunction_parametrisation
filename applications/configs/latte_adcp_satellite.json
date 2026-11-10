@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "coordinates": {
+    "longitude": 154.3,
+    "latitude": -37.9
+  },
+  "outer_fit": {
+    "maxfev": 10000,
+    "Rc_max_m": null
+  },
+  "analysis": {
+    "latitude_max": -37.0,
+    "depth_m": 37.0,
+    "initial_center_m": [
+      0.0,
+      0.0
+    ],
+    "initial_Q": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "core_radius_m": 35000.0,
+    "outer_radius_m": 100000.0,
+    "satellite_velocity_limit_m_s": 4.9
+  },
+  "plot": {
+    "source": "multi",
+    "x_limits_km": [
+      -170,
+      170
+    ],
+    "y_limits_km": [
+      -170,
+      170
+    ],
+    "quiver_spacing": 1,
+    "quiver_scale": 20,
+    "plot_data": true,
+    "diagnostics": true
+  },
+  "application": "latte_adcp_satellite",
+  "inputs": {
+    "sadcp": "data/sadcp_data.mat",
+    "satellite": "data/satellite_data.nc"
+  },
+  "output_dir": "results/applications/latte_adcp_satellite"
+}

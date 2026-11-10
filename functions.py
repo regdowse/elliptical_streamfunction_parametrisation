@@ -842,7 +842,8 @@ def doppio_pipeliner(nxc, nyc, ut, vt, X_new, Y_new, r=30000.0):
 
 def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
                           xc_pre=0.0, yc_pre=0.0, q11=1.0, q12=0.0, q22=1.0,
-                          rho_core=35_000.0, rho_outer = 100_000.0, plot=False):
+                          rho_core=35_000.0, rho_outer = 100_000.0, plot=False,
+                          outer_fit_options=None):
     '''
     Return ESP paramters given source of velocity data
     '''
@@ -975,7 +976,8 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     outer_fit = {}
     Rc, psi0, Omega_opt = out_core_param_fit(
         xi_o, yi_o, ui_o, vi_o, xc, yc, Q, Omega0=Omega, plot=plot,
-        pred_flag=True, fit_details=outer_fit, core_mask=core2[outer])
+        pred_flag=True, fit_details=outer_fit, core_mask=core2[outer],
+        **(outer_fit_options or {}))
     
     w_core, Omega_core = w, Omega
     w = Omega_opt * (q11 + q22)

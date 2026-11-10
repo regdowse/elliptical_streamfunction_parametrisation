@@ -8,3 +8,6 @@ tests/
 
 # Ignore Mac system files
 .DS_Store
+
+# Generated application and experiment outputs.
+results/
