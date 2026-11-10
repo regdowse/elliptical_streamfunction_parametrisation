@@ -1,3 +1,6 @@
 __pycache__/
 # Ignore automatically generated notebook checkpoints.
 .ipynb_checkpoints/
+
+context/
+validation/
