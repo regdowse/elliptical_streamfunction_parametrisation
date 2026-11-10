@@ -531,6 +531,8 @@ def out_core_param_fit(
 
     m = np.isfinite(rho2) & np.isfinite(Qr) & np.isfinite(vt) & (rho2 >= 0) & (Qr != 0)
     if not np.any(m):
+        if fit_details is not None:
+            fit_details.update(status="no_finite_samples", rho=np.array([]))
         return (np.nan, np.nan, np.nan, np.nan) if r2_flag else (np.nan, np.nan, np.nan)
 
     rho2 = rho2[m]
@@ -558,6 +560,7 @@ def out_core_param_fit(
         Omega0 = 0
 
     pcov = None
+    fit_status = "optimized"
     try:
         popt, pcov = curve_fit(
             vt_model, rho2, vt,
@@ -568,10 +571,12 @@ def out_core_param_fit(
         Omega_opt, Rc_opt = popt
     except:
         Omega_opt, Rc_opt = Omega0, Rc0
+        fit_status = "fallback_optimizer_exception"
 
     if (not np.isfinite(Rc_opt)) or (Rc_opt > Rc_max):
         Omega_opt, Rc_opt = Omega0, Rc0
         pcov = None
+        fit_status = "fallback_radius_limit"
 
     psi0_opt = -0.5 * Omega_opt * Rc_opt**2
 
@@ -586,7 +591,7 @@ def out_core_param_fit(
 
     # Preserve the actual fitted samples, parameters and uncertainty for display.
     # All physical quantities remain in SI; only plot coordinates are converted.
-    details = dict(rho=rho.copy(), vt=vt.copy(), Omega=Omega_opt, Rc=Rc_opt,
+    details = dict(status=fit_status, rho=rho.copy(), vt=vt.copy(), Omega=Omega_opt, Rc=Rc_opt,
                    psi0=psi0_opt, R2=R2, pcov=pcov, sigma2=sigma2,
                    observation_indices=observation_indices,
                    core_mask=(np.asarray(core_mask, dtype=bool)[observation_indices]
@@ -848,6 +853,19 @@ def latte_source_selector(ds_sadcp, ds_sat, source="multi", z_target=37.0,
     })
 
     df_fit.attrs["outer_fit"] = outer_fit
+    df_fit.attrs["settings"] = dict(z=z0, xc_pre=xc_pre, yc_pre=yc_pre,
+                                    rho_core=rho_core, rho_outer=rho_outer)
+    stage_counts = []
+    for stage, indices in [("available", np.arange(len(xi))),
+                           ("initial_core", np.flatnonzero(core1)),
+                           ("refined_core", np.flatnonzero(core2)),
+                           ("outer_candidates", np.flatnonzero(outer)),
+                           ("outer_fit", np.flatnonzero(outer)[outer_fit.get("observation_indices", np.array([], dtype=int))])]:
+        for name in np.unique(platform):
+            finite = np.isfinite(xi[indices]) & np.isfinite(yi[indices]) & np.isfinite(ui[indices]) & np.isfinite(vi[indices])
+            stage_counts.append(dict(source=source, stage=stage, platform=name,
+                                     finite_n=int(np.count_nonzero((platform[indices] == name) & finite))))
+    df_fit.attrs["selection_counts"] = stage_counts
     return df_row, pd.concat([df_inner, df_outer], ignore_index=True), df_fit
 
 def axis_ratio_from_Q(Q):
