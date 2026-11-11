@@ -37,7 +37,7 @@
     "quiver_spacing": 10,
     "quiver_scale": 15,
     "diagnostics": true,
-    "diagnostic_depth_m": null,
+    "diagnostic_depth_m": 287.0,
     "horizontal_depths_m": [
       37,
       100,
@@ -48,8 +48,18 @@
       550,
       600
     ],
-    "slice_depths_m": null,
-    "speed_max_m_s": 1.5
+    "slice_depths_m": [37, 280, 537],
+    "speed_max_m_s": 0.6,
+    "slice_speed_max_m_s": 0.8,
+    "slice_contour_step_m_s": 0.05,
+    "slice_observed_quiver_scale": 8.0,
+    "slice_model_quiver_scale": 15.0,
+    "slice_quiver_width": 0.0010,
+    "slice_model_quiver_spacing": 10,
+    "slice_elevation_deg": 30.0,
+    "slice_azimuth_deg": -60.0,
+    "slice_centreline_width": 3.0,
+    "slice_grid_points": 151
   },
   "application": "solo",
   "inputs": {

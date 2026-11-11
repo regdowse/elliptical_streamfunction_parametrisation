@@ -115,6 +115,28 @@ fit results. `horizontal_depths_m` controls the eight 2×4 map panels.
 a three-depth list overrides this. Explicit unsupported slices raise an error.
 Offsets always reference the accepted 37-m centre, independently of diagnostic depth.
 
+
+The 3D slice styling has separate controls in `plot`:
+
+| Setting | Meaning |
+| --- | --- |
+| `slice_speed_max_m_s` | Common speed colour limit for all three layers |
+| `slice_contour_step_m_s` | Filled-contour interval |
+| `slice_observed_quiver_scale` | Observed arrow scale; larger means shorter arrows |
+| `slice_model_quiver_scale` | Reconstructed arrow scale; larger means shorter arrows |
+| `slice_quiver_width` | Arrow thickness as a fraction of figure width; model arrows are thinner |
+| `slice_model_quiver_spacing` | Grid stride between reconstructed arrows |
+| `slice_grid_points` | Slice reconstruction grid resolution |
+| `slice_elevation_deg`, `slice_azimuth_deg` | Camera angles |
+| `slice_centreline_width` | Centreline width in points |
+
+Slices are opaque and use panel a)'s `Blues_r` filled contours, observed selections,
+reconstructed arrows and red peak contour. The centreline consists of two continuous,
+fully opaque paths split at the middle slice. Drawing order is bottom slice,
+lower path, middle slice, upper path, top slice. This is intended for the configured
+publication view; arbitrary rotations do not recompute physical occlusion.
+No fitted centres or parameters are changed by this display ordering.
+
 Five figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
 `solo_diagnostics`, `solo_sadcp`, `solo_depth_profiles`,
 `solo_horizontal_reconstructions`, and `solo_depth_slices_3d`.

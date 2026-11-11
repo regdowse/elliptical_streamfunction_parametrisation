@@ -199,10 +199,10 @@ def horizontal_maps(results,samples,settings):
         status='not attempted: track stopped' if row is None else row.status.replace('_',' ')
         ax.text(.02,.02,status,transform=ax.transAxes,fontsize=8,bbox=dict(facecolor='white',alpha=.7,edgecolor='none'))
         ax.text(.02,.94,f'Inner: {sample.inner.sum()}; outer used: {sample.outer_used.sum()}',transform=ax.transAxes,fontsize=8)
-        ax.set(title=f'{z:g} m',xlabel='East (km)',ylabel='North (km)',
+        ax.set(title=f'{z:g} m',xlabel='x (km)',ylabel='y (km)',
                xlim=settings['x_limits_km'],ylim=settings['y_limits_km'],aspect='equal')
-    fig.colorbar(ScalarMappable(norm=norm,cmap='Blues'),ax=list(axes.flat),label='Reconstructed speed (m/s)',shrink=.8)
-    fig.suptitle('SOLO · magenta: inner · green: outer (inner colour takes priority) · black: other\ngrey: reconstructed · red: centre / fitted peak')
+    fig.colorbar(ScalarMappable(norm=norm,cmap='Blues'),ax=list(axes.flat),label=r'Current speed (m$^{-1}$)',shrink=.8)
+    # fig.suptitle('SOLO · magenta: inner · green: outer (inner colour takes priority) · black: other\ngrey: reconstructed · red: centre / fitted peak')
     return fig,depths
 
 
@@ -222,38 +222,110 @@ def slices_3d(results,samples,settings):
             raise ValueError('Slice depths must select distinct measured bins')
         if not all(z in supported.depth_m.values for z in depths):
             raise ValueError('An explicitly selected 3D slice lacks a supported outer fit')
-    axis=np.linspace(*settings['x_limits_km'],75);yaxis=np.linspace(*settings['y_limits_km'],75)
-    xx,yy=np.meshgrid(axis,yaxis);norm=Normalize(0,settings['speed_max_m_s'])
-    fig=plt.figure(figsize=(11,8),layout='constrained');ax=fig.add_subplot(111,projection='3d',computed_zorder=False)
+    # All settings below are display-only; this function never fits parameters.
+    positive = ['slice_speed_max_m_s','slice_contour_step_m_s',
+                'slice_observed_quiver_scale','slice_model_quiver_scale',
+                'slice_quiver_width','slice_model_quiver_spacing',
+                'slice_centreline_width','slice_grid_points']
+    for key in positive:
+        if not np.isfinite(settings[key]) or settings[key] <= 0:
+            raise ValueError(f'{key} must be positive and finite')
+    for key in ('slice_grid_points','slice_model_quiver_spacing'):
+        if not isinstance(settings[key],int):
+            raise ValueError(f'{key} must be an integer')
+    if settings['slice_grid_points'] < 3:
+        raise ValueError('slice_grid_points must be >=3')
+    if not np.isfinite([settings['slice_elevation_deg'],settings['slice_azimuth_deg']]).all():
+        raise ValueError('Slice viewing angles must be finite')
+    if settings['slice_contour_step_m_s'] > settings['slice_speed_max_m_s']:
+        raise ValueError('Slice contour step must not exceed the speed maximum')
+    axis=np.linspace(*settings['x_limits_km'],settings['slice_grid_points'])
+    yaxis=np.linspace(*settings['y_limits_km'],settings['slice_grid_points'])
+    xx,yy=np.meshgrid(axis,yaxis)
+    levels=np.arange(0,settings['slice_speed_max_m_s']+settings['slice_contour_step_m_s']*.5,
+                     settings['slice_contour_step_m_s'])
+    if levels[-1] < settings['slice_speed_max_m_s']:
+        levels=np.r_[levels,settings['slice_speed_max_m_s']]
+    norm=Normalize(0,settings['slice_speed_max_m_s'])
+    fig=plt.figure(figsize=(11,10),layout='constrained')
+    ax=fig.add_subplot(111,projection='3d',computed_zorder=False)
     theta=np.linspace(0,2*np.pi,180)
-    for z in depths:
+    span=settings['x_limits_km'][1]-settings['x_limits_km'][0]
+    # Match 2D quiver convention: bigger scale -> shorter arrows.
+    observed_length=span/settings['slice_observed_quiver_scale']
+    model_length=span/settings['slice_model_quiver_scale']
+    linewidth=settings['slice_quiver_width']*fig.get_figwidth()*72
+    stride=settings['slice_model_quiver_spacing']
+    for layer_index,z in enumerate(sorted(depths,reverse=True)):
+        layer_order=10*layer_index
         row=supported[supported.depth_m==z].iloc[0];sample=samples[z]
         u,v=esp.model_uv_at_xy(xx*1000,yy*1000,row.xc,row.yc,row.Q,row.Omega,row.Rc)
+        # Opaque contourf layers: same palette and discrete fills as panel a).
         layer=ax.contourf(xx,yy,np.hypot(u,v),zdir='z',offset=z,
-                    levels=np.linspace(0,settings['speed_max_m_s'],31),
-                    cmap='Blues_r',norm=norm,alpha=.65,extend='max',zorder=0)
-        layer.set_edgecolor('none')
+                         levels=levels,cmap='Blues_r',norm=norm,extend='max',zorder=layer_order)
+        layer.set_edgecolor('face')
         layer.set_linewidth(0)
-        ax.quiver(xx[::10,::10],yy[::10,::10],np.full_like(xx[::10,::10],z),
-                  u[::10,::10],v[::10,::10],np.zeros_like(u[::10,::10]),
-                  color='grey',alpha=.4,length=12,arrow_length_ratio=.2,linewidth=.5,zorder=2)
-        # Horizontal arrows are in km per m/s; vertical velocity is not inferred.
+        layer.set_antialiased(False)
+        ax.quiver(xx[::stride,::stride],yy[::stride,::stride],
+            np.full_like(xx[::stride,::stride],z),u[::stride,::stride],v[::stride,::stride],
+            np.zeros_like(u[::stride,::stride]),color='grey',alpha=.7,
+            length=model_length,arrow_length_ratio=.2,linewidth=linewidth*.6,zorder=layer_order+2)
         for mask,color in [(sample.finite,'black'),(sample.finite & sample.outer_used,'green'),
                            (sample.finite & sample.inner,'magenta')]:
             d=sample.loc[mask]
             ax.quiver(d.x_m/1000,d.y_m/1000,np.full(len(d),z),d.u,d.v,np.zeros(len(d)),
-                      color=color,length=12,arrow_length_ratio=.2,linewidth=.7,zorder=3)
+                      color=color,length=observed_length,arrow_length_ratio=.2,
+                      linewidth=linewidth,zorder=layer_order+3)
         radius=row.Rc/np.sqrt(2)/1000
-        ax.plot(row.xc/1000+radius*np.cos(theta),row.yc/1000+radius*np.sin(theta),np.full_like(theta,z),'r--',lw=1.5,zorder=4)
-        ax.scatter(row.xc/1000,row.yc/1000,z,marker='x',color='r',s=35,zorder=5)
-        ax.text(settings['x_limits_km'][0],settings['y_limits_km'][1],z,f'{z:g} m')
-    ax.plot(results.xc/1000,results.yc/1000,results.depth_m,'k.-',lw=2,label='Accepted inner centreline',zorder=6)
-    ax.set(xlabel='East (km)',ylabel='North (km)',zlabel='Depth (m)',
+        ax.plot(row.xc/1000+radius*np.cos(theta),row.yc/1000+radius*np.sin(theta),
+                np.full_like(theta,z),'r--',lw=2,zorder=layer_order+4, alpha=.7)
+        if z == min(depths):
+            # ax.scatter(row.xc/1000,row.yc/1000,z,marker='x',color='r',s=50,zorder=layer_order+5)
+            ax.scatter(row.xc/1000,row.yc/1000,z,marker='.',color='orange',s=80,zorder=layer_order+5)
+        # Place the glyphs in the horizontal plane, rather than facing the camera.
+        from matplotlib.textpath import TextPath
+        from matplotlib.patches import PathPatch
+        from mpl_toolkits.mplot3d.art3d import pathpatch_2d_to_3d
+        label_span=min(np.ptp(settings['x_limits_km']),np.ptp(settings['y_limits_km']))
+        label_x=settings['x_limits_km'][0]+.05*label_span
+        label_y=settings['y_limits_km'][0]+.05*label_span
+        label_path=TextPath((label_x,label_y),f'{z:g} m',size=.04*label_span,
+                            prop={'weight':'bold'})
+        label_patch=PathPatch(label_path,facecolor='white',edgecolor='none',zorder=layer_order+7)
+        ax.add_patch(label_patch)
+        pathpatch_2d_to_3d(label_patch,z=z,zdir='z')
+    ax.set(xlabel='x (km)',ylabel='y (km)',zlabel='Depth (m)',
            xlim=settings['x_limits_km'],ylim=settings['y_limits_km'],
-           zlim=(results.loc[results.inner_valid,'depth_m'].max()+30,0),
-           title='SOLO horizontal slices and centreline — vertical scale exaggerated')
+           zlim=(results.loc[results.inner_valid,'depth_m'].max()+30,0),)
+        #    title='SOLO horizontal slices and centreline — vertical scale exaggerated')
     ax.set_xticks(np.linspace(*settings['x_limits_km'],5)[1:-1])
     ax.set_yticks(np.linspace(*settings['y_limits_km'],5)[1:-1])
-    ax.set_box_aspect((1,1,1.3));ax.view_init(elev=20,azim=-60);ax.legend()
-    fig.colorbar(ScalarMappable(norm=norm,cmap='Blues_r'),ax=ax,label='Reconstructed speed (m/s)',shrink=.5,pad=.12)
+    ax.set_box_aspect((1,1,1.6))
+    ax.view_init(elev=settings['slice_elevation_deg'],azim=settings['slice_azimuth_deg'])
+
+    # Two continuous opaque paths, with a fixed painter's order:
+    # bottom slice -> lower line -> middle slice -> upper line -> top slice.
+    # This intentionally targets the configured publication view, not arbitrary
+    # camera-dependent occlusion. No fitted centres or depth values are changed.
+    points=results.loc[results.inner_valid,['xc','yc','depth_m']].to_numpy(float,copy=True)
+    points[:,:2]/=1000
+    middle_depth=float(np.median(depths))
+    # Normally the middle slice is a measured fitted depth. For a two-slice
+    # fallback, insert only a display junction on the existing polyline.
+    if len(points) and not np.any(points[:,2]==middle_depth):
+        insertion=int(np.searchsorted(points[:,2],middle_depth))
+        if 0 < insertion < len(points):
+            first,second=points[insertion-1:insertion+1]
+            fraction=(middle_depth-first[2])/(second[2]-first[2])
+            points=np.insert(points,insertion,first+fraction*(second-first),axis=0)
+    lower=points[points[:,2]>=middle_depth]
+    upper=points[points[:,2]<=middle_depth]
+    lower_line,=ax.plot(*lower.T,color='orange',alpha=1.,
+        lw=settings['slice_centreline_width'],zorder=8,label='Accepted inner centreline')
+    upper_line,=ax.plot(*upper.T,color='orange',alpha=1.,
+        lw=settings['slice_centreline_width'],zorder=18)
+    fig._solo_centreline_paths=(lower_line,upper_line)
+    # ax.legend()
+    fig.colorbar(ScalarMappable(norm=norm,cmap='Blues_r'),ax=ax,
+                 label=r'Current speed (ms$^{-1}$)',shrink=.5,pad=0.0)
     return fig,depths
