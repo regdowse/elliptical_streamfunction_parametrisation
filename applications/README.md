@@ -137,9 +137,21 @@ lower path, middle slice, upper path, top slice. This is intended for the config
 publication view; arbitrary rotations do not recompute physical occlusion.
 No fitted centres or parameters are changed by this display ordering.
 
-Five figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
+Six figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
 `solo_diagnostics`, `solo_sadcp`, `solo_depth_profiles`,
-`solo_horizontal_reconstructions`, and `solo_depth_slices_3d`.
+`solo_horizontal_reconstructions`, `solo_vertical_sections`, and `solo_depth_slices_3d`.
+The 1×2 vertical sections appear before the 3D plot. Both planes pass through
+the accepted 37-m centre: the zonal plane plots signed northward velocity v;
+the meridional plane plots signed eastward velocity u. They share a zero-centred
+`RdBu_r` scale. `plot.section_velocity_max_m_s: null` selects an automatic
+symmetric limit; a positive value fixes it. `section_contour_step_m_s` sets the
+colour interval. Orange lines are projected inner centres. Red dashed lines are
+intersections with rho²=Rc²/2, including each depth's transverse offset from the
+fixed plane, following the same peak contour as the horizontal maps. They are
+not extrema of the plotted component. Missing intersections and unsupported
+depths remain blank; no depth gaps are filled. `vertical_sections.npz` saves the
+section coordinates, signed fields, contour intersections and plane positions.
+
 `parameters.csv` now contains **all attempted depths**, including the stopping
 failure, rather than one near-surface row. `observation_selection.csv` records
 actual native vectors and search/inner/outer masks, including unattempted bins.

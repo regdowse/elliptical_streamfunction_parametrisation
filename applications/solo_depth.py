@@ -149,7 +149,9 @@ def diagnostic(results, fits, depth):
             (p['C']*dl+p['D']*dl**3,p['A']+p['B']*dl**2),('VN','VT')):
         ax.scatter(l/1000,values,color='.65',s=15,label='Search observations')
         ax.scatter(l[mask]/1000,values[mask],color='m',s=18,label='Inner fit')
+        ylim = ax.get_ylim()
         ax.plot(l/1000,curve,color='k',lw=1)
+        ax.set_ylim(ylim)
         ax.axvline(p['x0']/1000,color='k',ls='--',lw=.8)
         ax.set(xlabel='Along-track coordinate (km)',ylabel=f'{label} (m/s)')
     axes[0].legend(fontsize=8)
@@ -204,6 +206,87 @@ def horizontal_maps(results,samples,settings):
     fig.colorbar(ScalarMappable(norm=norm,cmap='Blues'),ax=list(axes.flat),label=r'Current speed (m$^{-1}$)',shrink=.8)
     # fig.suptitle('SOLO · magenta: inner · green: outer (inner colour takes priority) · black: other\ngrey: reconstructed · red: centre / fitted peak')
     return fig,depths
+
+
+def _section_peak_intersections(xc,yc,Q,Rc,x_plane,y_plane):
+    """Intersect rho²=Rc²/2 with the fixed planes; no crossing gives NaNs.
+
+    These are peak-contour intersections, not extrema of u/v along the section.
+    Coordinates are SI; centred quadratics avoid large-origin cancellation.
+    """
+    q11,q12,q22=Q[0,0],Q[0,1],Q[1,1]
+    dy=y_plane-yc
+    discriminant_x=(q12*dy)**2-q11*(q22*dy*dy-Rc*Rc/2)
+    x_roots=(xc+(-q12*dy+np.array([-1.,1.])*np.sqrt(discriminant_x))/q11
+             if discriminant_x>=0 else np.full(2,np.nan))
+    dx=x_plane-xc
+    discriminant_y=(q12*dx)**2-q22*(q11*dx*dx-Rc*Rc/2)
+    y_roots=(yc+(-q12*dx+np.array([-1.,1.])*np.sqrt(discriminant_y))/q22
+             if discriminant_y>=0 else np.full(2,np.nan))
+    return x_roots,y_roots
+
+
+def vertical_sections(results,settings):
+    """Signed cross-section velocities through the fixed 37-m centre.
+
+    Model evaluation and contour intersections only, without fitting or filling
+    unsupported depth rows. The orange centreline is projected onto each plane.
+    """
+    reference=results.loc[(results.depth_m==37)&results.inner_valid]
+    if reference.empty:
+        raise ValueError('Vertical sections require an accepted 37-m centre')
+    x_plane,y_plane=reference.iloc[0][['xc','yc']].to_numpy(float)
+    step=settings['section_contour_step_m_s']
+    if not np.isfinite(step) or step<=0:
+        raise ValueError('section_contour_step_m_s must be positive and finite')
+    x=np.linspace(*settings['x_limits_km'],201)*1000
+    y=np.linspace(*settings['y_limits_km'],201)*1000
+    depths=results.depth_m.to_numpy(float)
+    zonal=np.full((len(depths),len(x)),np.nan)
+    meridional=np.full((len(depths),len(y)),np.nan)
+    x_roots=np.full((len(depths),2),np.nan)
+    y_roots=np.full((len(depths),2),np.nan)
+    for i,row in enumerate(results.itertuples()):
+        if not row.outer_valid:
+            continue
+        _,zonal[i]=esp.model_uv_at_xy(x,np.full_like(x,y_plane),row.xc,row.yc,row.Q,row.Omega,row.Rc)
+        meridional[i],_=esp.model_uv_at_xy(np.full_like(y,x_plane),y,row.xc,row.yc,row.Q,row.Omega,row.Rc)
+        x_roots[i],y_roots[i]=_section_peak_intersections(row.xc,row.yc,row.Q,row.Rc,x_plane,y_plane)
+    limit=settings['section_velocity_max_m_s']
+    if limit is None:
+        finite=np.r_[zonal[np.isfinite(zonal)],meridional[np.isfinite(meridional)]]
+        limit=max(step,np.ceil(np.max(np.abs(finite))/step)*step) if len(finite) else step
+    if not np.isfinite(limit) or limit<=0:
+        raise ValueError('section_velocity_max_m_s must be null or positive and finite')
+    count=max(1,int(np.ceil(limit/step)))
+    levels=np.linspace(-limit,limit,2*count+1)
+    fig,axes=plt.subplots(1,2,figsize=(12,6),sharey=True,layout='constrained')
+    for ax,coordinate,values,roots,centre,label,title,component in zip(axes,
+            (x,y),(zonal,meridional),(x_roots,y_roots),(results.xc,results.yc),
+            ('x (km)','y (km)'),
+            (f'Zonal section · y={y_plane/1000:.2f} km',f'Meridional section · x={x_plane/1000:.2f} km'),
+            ('Northward velocity v (m/s)','Eastward velocity u (m/s)')):
+        if len(depths)>=2 and np.isfinite(values).any():
+            image=ax.contourf(coordinate/1000,depths,np.ma.masked_invalid(values),levels=levels,
+                             cmap='RdBu_r',extend='both',corner_mask=False)
+            fig.colorbar(image,ax=ax,location='top',label=component)
+        else:
+            ax.text(.5,.5,'No supported depth reconstruction',ha='center',transform=ax.transAxes)
+        ax.plot(centre.where(results.inner_valid)/1000,depths,color='orange',lw=2,label='Projected centreline')
+        for branch in range(2):
+            ax.plot(roots[:,branch]/1000,depths,'r--',lw=1.5,
+                    label='Peak-contour intersection' if branch==0 else None)
+        ax.set(xlabel=label,title=title,xlim=(coordinate[0]/1000,coordinate[-1]/1000))
+    axes[0].set_ylabel('Depth (m)')
+    axes[0].set_ylim(depths.max(),depths.min())
+    axes[0].legend(loc='lower left',fontsize=8)
+    fig.suptitle('Fixed section planes through the 37-m centre')
+    # Saved display data make plane locations, signed components and actual
+    # contour intersections inspectable without another estimator call.
+    data=dict(depth_m=depths,x_m=x,y_m=y,zonal_v_m_s=zonal,meridional_u_m_s=meridional,
+              x_peak_roots_m=x_roots,y_peak_roots_m=y_roots,
+              x_plane_m=x_plane,y_plane_m=y_plane,velocity_limit_m_s=limit)
+    return fig,data
 
 
 def slices_3d(results,samples,settings):
