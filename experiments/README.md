@@ -12,8 +12,8 @@ python experiments/run.py idealised --plot-only
 ```
 
 This runs SOLO, DOPPIO, LATTE and the ESP schematic with their own configurations.
-Together they export the eight main-paper idealised figures as PDF and 300-dpi
-PNG, per-group results and **`results/experiments/idealised_manuscript_summary.md`**.
+Together they export the eight main-paper idealised figures as 300-dpi
+PNG in `results/manuscript_figures/`, per-group results and **`results/experiments/idealised_manuscript_summary.md`**.
 That combined file contains all four manuscript summaries for transferring the
 current results into the paper. It is assembled only after every group completes.
 The schematic is illustrative and performs no parameter estimation.
@@ -44,8 +44,8 @@ python experiments/run.py solo_idealised --plot-only
 ```
 
 Settings are in [`configs/solo_idealised.json`](configs/solo_idealised.json).
-The run produces four PDF/PNG figures under
-`results/experiments/solo_idealised/figures/`:
+The run produces four PNG figures under
+`results/manuscript_figures/`:
 
 | Figure | Test |
 | --- | --- |
@@ -97,10 +97,10 @@ python experiments/run.py doppio_idealised --plot-only
 Configuration: [`configs/doppio_idealised.json`](configs/doppio_idealised.json).
 Outputs: `results/experiments/doppio_idealised/`.
 
-- `DOPPIO.pdf/png`: proximity cases on the truth field; all six sets of observed
+- `DOPPIO.png`: proximity cases on the truth field; all six sets of observed
   velocities and their inner-core linearisations. Solid lines are observations;
   faint lines are tangents at the fitted roots, matching the original layout.
-- `DOPPIO_outercore_fits.pdf/png`: the same six stored outer fits, with observed
+- `DOPPIO_outercore_fits.png`: the same six stored outer fits, with observed
   points, faded extrapolation, predicted peak and true normalised peak radius.
 - `parameters.csv` and `manuscript_table.csv`: six DOPPIO fits and six LATTE fits
   to matching unique observations, with inner/final rates kept separate.
@@ -132,7 +132,7 @@ python experiments/run.py latte_idealised --plot-only
 ```
 
 Configuration: [`configs/latte_idealised.json`](configs/latte_idealised.json).
-Outputs: `results/experiments/latte_idealised/`, including `figures/LATTE.pdf/png`,
+Outputs: `results/experiments/latte_idealised/`, with `LATTE.png` in the shared manuscript figure folder, plus
 parameters, errors, manuscript table and summary. Four examples use the same
 elliptical truth as DOPPIO:
 
@@ -162,7 +162,7 @@ python experiments/run.py schematic --plot-only
 ```
 
 Configuration: [`configs/schematic.json`](configs/schematic.json).
-Outputs: `results/experiments/schematic/figures/ESP_schematic.pdf/png`, sampling,
+Outputs: `results/manuscript_figures/ESP_schematic.png`, plus sampling,
 summary and metadata. The original circular sampling design is preserved:
 40 core draws, 60 outer draws, 30-km core circle, 120-km outer selection and
 175-km sampling extent, snapped to a 1-km grid. A fixed configurable seed makes
@@ -276,11 +276,11 @@ output folders are overwritten when the experiment is rerun.
 
 | Figure | Output | Purpose |
 | --- | --- | --- |
-| **S1** | `noise_sampling/figures/noise_sampling.pdf` and `.png` | Median errors and 10th–90th Monte Carlo percentiles |
-| **S2** | `background_flow/figures/background_flow.pdf` and `.png` | Deterministic background-flow errors; no uncertainty bands |
-| **S3** | `noise_sampling/figures/sampling_geometry.pdf` and `.png` | Actual LOW/MEDIUM/HIGH locations and unique inner/outer counts |
+| **S1** | `results/manuscript_figures/noise_sampling.png` | Median errors and 10th–90th Monte Carlo percentiles |
+| **S2** | `results/manuscript_figures/background_flow.png` | Deterministic background-flow errors; no uncertainty bands |
+| **S3** | `results/manuscript_figures/sampling_geometry.png` | Actual LOW/MEDIUM/HIGH locations and unique inner/outer counts |
 
-Figures are PDF plus 300-dpi PNG by default. S3's HIGH configurations also supply
+Figures are PNG only (300 dpi by default). S3's HIGH configurations also supply
 the background-flow experiment; no separate background-geometry figure is made.
 Figure numbers are configurable labels, not dependencies of the calculations.
 
@@ -294,10 +294,9 @@ results/experiments/
 │   ├── summary.csv
 │   ├── sampling.csv
 │   ├── run_metadata.json
-│   ├── plot_metadata.json
-│   └── figures/
+│   └── plot_metadata.json
 └── background_flow/
-    └── same result files and its figures/
+    └── same numerical result files and metadata
 ```
 
 **Give `manuscript_summary.md` to ChatGPT** with the relevant manuscript section.
@@ -350,3 +349,9 @@ intersection handling, streamfunction derivative signs, Uref, final-Omega error
 definitions and valid clean baselines. Trial checks verify the complete expected
 condition/replicate counts and explicit statuses. Numerical acceptance alone
 does not establish accuracy or general robustness outside this experimental design.
+
+All experiment figures share `results/manuscript_figures/` with application figures.
+The generated `manuscript_figures.md` there links PNGs to results summaries and
+flags missing exports. With `--output-root`, figures go to
+`<output-root>/manuscript_figures/`; they do not overwrite default manuscript PNGs.
+Figure hashes in each run's `plot_metadata.json` use paths relative to that run.

@@ -347,7 +347,7 @@ def write_report(data,config,directory):
         "All numerical inputs/fits and scientific CSVs use SI. Q is normalised to unit determinant. Figure coordinates display km. Full effective configuration is appended below.", ""]
     if name == "schematic":
         f = data["sampling"]
-        lines += ["Figure: ESP_schematic.png (also exported as PDF).", "",
+        lines += ["Figure: ESP_schematic.png (PNG only, in the shared manuscript_figures directory).", "",
             "Illustration only: known true centre and circular masks demonstrate the workflow. No inversion, fitted centre or parameter-recovery result is claimed.",
             f"Seed={config['sampling']['seed']}; {len(f)} samples, {len(f[['x_m','y_m']].drop_duplicates())} unique locations. Selected counts: initial={int(f.initial_mask.sum())}, inner={int(f.core_mask.sum())}, outer annulus={int(f.outer_mask.sum())}.",
             "The earlier illustration used unseeded random samples. This is a new fixed, reproducible realisation of the same sampling design, snapped to the 1-km grid. Duplicate snapped locations are retained.", ""]

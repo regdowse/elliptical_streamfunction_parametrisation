@@ -171,10 +171,7 @@
     "symlog_min_decades": 2.0,
     "geometry_limit_rc": 1.5,
     "geometry_show_rc": false,
-    "formats": [
-      "pdf",
-      "png"
-    ]
+    "formats": ["png"]
   },
   "schema_version": 1,
   "design_source": {

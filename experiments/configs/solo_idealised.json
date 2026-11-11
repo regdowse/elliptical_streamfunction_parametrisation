@@ -19,5 +19,5 @@
   },
   "plot": {"limits_km": [-100, 100], "grid_limits_m": [-250000, 250000], "grid_points": 501,
     "quiver_stride": 10, "quiver_scale": 40, "velocity_limits_m_s": [-3, 3],
-    "outer_radius_limit_km": 110, "colors": ["green", "red", "blue"], "dpi": 300, "formats": ["pdf", "png"]}
+    "outer_radius_limit_km": 110, "colors": ["green", "red", "blue"], "dpi": 300, "formats": ["png"]}
 }

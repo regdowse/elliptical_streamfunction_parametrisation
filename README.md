@@ -117,7 +117,7 @@ python experiments/run.py all
 ```
 
 This runs the noise/sampling and background-flow tests with the configured
-100 noise realisations per nonzero condition. It exports Figures S1–S3 as PDF/PNG,
+100 noise realisations per nonzero condition. It exports Figures S1–S3 as PNG,
 trial/summary tables and manuscript reports under `results/experiments/`.
 
 To redraw saved figures without fitting again:
@@ -214,3 +214,19 @@ Please also acknowledge the original data providers linked above.
 ## Author
 
 **Reg Dowse** — UNSW Sydney
+
+## Manuscript figure exports
+
+All 14 main figures and supplementary Figures S1–S3 are saved as **PNG only**
+in `results/manuscript_figures/`. The generated `manuscript_figures.md` in that
+folder links each figure to its generator and results summary, and flags missing
+PNGs. Run all four application notebooks, `python experiments/run.py idealised`,
+and `python experiments/run.py all` to generate the complete set. Existing saved
+experiment results can be redrawn using `--plot-only`.
+
+Only manuscript figures are exported; diagnostic plots remain visible in the
+notebooks. Figure 6 (`solo_sadcp.png`) is the combined depth-dependent SOLO figure.
+Numerical outputs, run metadata and summaries stay in their application/experiment
+folders. Rerunning a figure replaces its PNG. A custom application output directory
+or experiment `--output-root` uses a separate `manuscript_figures/` folder alongside
+its run directories, keeping custom runs out of the default manuscript folder.

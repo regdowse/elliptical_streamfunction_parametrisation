@@ -19,7 +19,7 @@ analysis steps, manuscript plots and diagnostic plots are retained.
 2. Edit the corresponding JSON configuration in `applications/configs/`.
 3. Open the notebook from the repository root or `applications/`, restart the
    kernel, and run all cells in order.
-4. Collect figures from the notebook and the exported files from its results folder.
+4. Collect manuscript PNGs from `results/manuscript_figures/` and numerical results from the configured results folder.
 
 The first cell locates the repository without changing the working directory.
 `CONFIG_PATH` selects the JSON file. To use a separate configuration, edit that
@@ -42,7 +42,7 @@ are shared with the repository; generated results are gitignored.
   `diagnostics: true` preserves the existing intermediate plots; set it to false
   to suppress diagnostic fits/scatters while retaining the main results figures.
 - `reconstruction`: SOLO's reconstructed grid extent/resolution.
-- `output_dir`: where this run's results, reports and any exported figures are saved.
+- `output_dir`: where this run's numerical results and reports are saved; manuscript PNGs use the shared figure directory.
 
 DOPPIO and drifter–satellite snapshots are selected by configured UTC dates.
 `snapshot_tolerance_hours` permits small differences such as model time-encoding
@@ -84,15 +84,19 @@ values still agree.
 
 **Rerunning replaces the three files in the configured output directory.** Set a
 new `output_dir` to keep a separate run. Restart and run all cells after changing
-configuration; export refuses a config edited after it was loaded. Most figures
-remain interactive notebook outputs. The final time-series plot in
-`LATTE_app2_multiplatform_data.ipynb` also exports manuscript Figure 14 as
-`figures/latte_multi_analysis.pdf` and `.png` under its configured output directory.
+configuration; export refuses a config edited after it was loaded. Diagnostic
+figures remain visible in the notebooks without being saved. Manuscript PNGs
+are saved in `results/manuscript_figures/`: SOLO Figure 6 `solo_sadcp.png`,
+DOPPIO Figures 9–10 `doppio_num.png` and `doppio_num_analysis.png`, LATTE
+Figure 12 `latte_sadcp_sat.png`, and Figures 13–14 `latte_drifter_sat.png`
+and `latte_multi_analysis.png`. The generated figure index links to each summary.
+
+The final LATTE time-series plot is Figure 14.
 It compares multi-platform and drifter-only LATTE, with Rc and Gaussian velocity
 R² shown only for the multi-platform reconstruction.
 
 `DOPPIO_gridded_data.ipynb` also exports manuscript Figure 10 as
-`figures/doppio_num_analysis.pdf` and `.png`. Its five snapshots are configured
+`results/manuscript_figures/doppio_num_analysis.png`. Its five snapshots are configured
 by UTC date in `plot.analysis_snapshots_utc` in `configs/doppio.json`, with the
 configured snapshot tolerance. Missing snapshots raise an explicit error.
 
@@ -137,10 +141,10 @@ lower path, middle slice, upper path, top slice. This is intended for the config
 publication view; arbitrary rotations do not recompute physical occlusion.
 No fitted centres or parameters are changed by this display ordering.
 
-Seven figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
-`solo_diagnostics`, `solo_sadcp`, `solo_depth_profiles`,
-`solo_horizontal_reconstructions`, `solo_vertical_sections`, `solo_depth_slices_3d`,
-and `solo_manuscript_panels`.
+Only the combined manuscript figure is saved, as
+`results/manuscript_figures/solo_sadcp.png` (Figure 6). The original two-panel
+figure, diagnostics, profiles, horizontal reconstructions, sections and standalone
+3D view remain notebook outputs without automatic figure exports.
 The 1×4 vertical sections appear before the 3D plot. Both planes pass through
 the accepted 37-m centre: the zonal plane plots signed northward velocity v;
 the meridional plane plots signed eastward velocity u. They share a zero-centred
@@ -161,7 +165,7 @@ not extrema of the plotted component. Missing intersections and unsupported
 depths remain blank; no depth gaps are filled. `vertical_sections.npz` saves the
 section coordinates, signed fields, contour intersections and plane positions.
 
-A standalone **3×1 manuscript companion** is plotted after the current 3D figure,
+If drawn separately, the **3×1 manuscript companion** uses the same fitted data,
 without combining or replacing the existing figures. Its first panel reuses the
 zonal vorticity section and red peak-contour intersections, with a right-hand
 vertical colour bar. The second plots final Ω on a pink upper x-axis and Rc on
@@ -175,9 +179,8 @@ are reused from the section plot, not recomputed or refitted.
 A new combined figure follows the standalone companion: the same 3D view on
 the left, labelled a) with its speed colour bar, and two companion panels on
 the right: zonal vorticity b) and Ω/Rc profiles c), with a 2:1 width allocation.
-It saves as `solo_manuscript_combined.png` and `.pdf`. The bird's-eye trajectory
-remains in the standalone companion. The standalone figures and `solo_sadcp`
-remain available.
+It saves as `results/manuscript_figures/solo_sadcp.png`. The bird's-eye trajectory
+remains in the standalone companion. The standalone figures remain visible in the notebook.
 
 `parameters.csv` now contains **all attempted depths**, including the stopping
 failure, rather than one near-surface row. `observation_selection.csv` records

@@ -8,5 +8,5 @@
     "core_radius_m": 30000, "outer_radius_m": 120000, "sample_radius_m": 175000,
     "initial_guess_m": [15000, 15000]},
   "plot": {"limits_km": [-150, 150], "quiver_scale": 22,
-    "colors": ["orange", "magenta", "limegreen"], "dpi": 300, "formats": ["pdf", "png"]}
+    "colors": ["orange", "magenta", "limegreen"], "dpi": 300, "formats": ["png"]}
 }

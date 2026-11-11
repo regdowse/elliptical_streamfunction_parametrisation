@@ -1,11 +1,13 @@
 """Render saved DOPPIO/LATTE validations and the illustrative ESP schematic."""
 from datetime import datetime, timezone
 import json
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from experiments.outputs import sha256
+from manuscript_figures import save_manuscript_figure
 
 
 def ellipse(ax,xc,yc,Q,radius,**style):
@@ -393,20 +395,16 @@ def render(data,config,directory):
     plt.rcParams.update({"pdf.fonttype":42,"ps.fonttype":42})
     figures = {"doppio_idealised":{"DOPPIO":plot_doppio,"DOPPIO_outercore_fits":plot_doppio_outer},
                "latte_idealised":{"LATTE":plot_latte},"schematic":{"ESP_schematic":plot_schematic}}[config["experiment"]]
-    output = directory/"figures";output.mkdir(exist_ok=True)
     paths = []
     for name,plotter in figures.items():
         fig = plotter(data,config)
         try:
-            for extension in config["plot"]["formats"]:
-                path = output/f"{name}.{extension}"
-                fig.savefig(path,dpi=config["plot"]["dpi"],
-                            **({"bbox_inches":"tight"} if name == "LATTE" else {}))
-                paths.append(path)
+            paths.append(save_manuscript_figure(fig,name,directory,dpi=config["plot"]["dpi"],
+                         **({"bbox_inches":"tight"} if name == "LATTE" else {})))
         finally:
             plt.close(fig)
-    metadata = dict(utc=datetime.now(timezone.utc).isoformat(),plot=config["plot"],source_sha256=sha256(__file__),
+    metadata = dict(utc=datetime.now(timezone.utc).isoformat(),plot={**config["plot"],"formats":["png"]},source_sha256=sha256(__file__),
         run_metadata_sha256=sha256(directory/"run_metadata.json"),
-        figures_sha256={str(path.relative_to(directory)):sha256(path) for path in paths})
+        figures_sha256={os.path.relpath(path,directory):sha256(path) for path in paths})
     (directory/"plot_metadata.json").write_text(json.dumps(metadata,indent=2)+"\n")
     return paths

@@ -207,6 +207,8 @@ def export_application_results(root, config_path, config, results, summary_text,
     parameters.to_csv(output / "parameters.csv", index=False, float_format="%.17g")
     (output / "manuscript_summary.md").write_text("\n".join(report) + "\n")
     (output / "run_metadata.json").write_text(json.dumps(_json_safe(metadata), indent=2, allow_nan=False) + "\n")
+    from manuscript_figures import figure_directory, write_index
+    write_index(figure_directory(output))
     print(f"Results exported to {output}")
     return output
 

@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 from types import SimpleNamespace
@@ -107,7 +108,7 @@ def write_report(results, context, directory):
         "- `sampling.csv`: unique/inner/outer counts for every geometry.",
         "- `run_metadata.json`: effective config, source-file hash, seed, coordinates, method/helper hashes, Git state, versions, self-tests and CSV hashes.",
         "- `plot_metadata.json`: current rendering configuration and figure hashes, including plot-only redraws.",
-        "- `figures/`: PDF and PNG manuscript figures. Replotting never refits or changes the saved trials.", "",
+        "- Manuscript PNGs: `results/manuscript_figures/` (custom output roots use their own `manuscript_figures/`). Replotting never refits or changes the saved trials.", "",
         "## Effective configuration", "", "```json", json.dumps(c.values, indent=2, allow_nan=False), "```", ""]
     (directory / "manuscript_summary.md").write_text("\n".join(lines))
     table.to_csv(directory / "manuscript_table.csv", index=False, float_format="%.17g")
@@ -164,7 +165,7 @@ def save_plot_metadata(directory, context, paths):
     directory = Path(directory)
     metadata = {"generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "run_metadata_sha256": sha256(directory / "run_metadata.json"),
-        "plotting": context.config.values["plotting"], "manuscript_labels": context.config.values["manuscript"],
+        "plotting": {**context.config.values["plotting"],"formats":["png"]}, "manuscript_labels": context.config.values["manuscript"],
         "plotting_code_sha256": sha256(Path(__file__).with_name("plotting.py")),
-        "figure_sha256": {str(p.relative_to(directory)): sha256(p) for p in paths}}
+        "figure_sha256": {os.path.relpath(p,directory): sha256(p) for p in paths}}
     (directory / "plot_metadata.json").write_text(json.dumps(_json_safe(metadata),indent=2,allow_nan=False)+"\n")

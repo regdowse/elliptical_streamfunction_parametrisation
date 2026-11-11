@@ -31,13 +31,15 @@ def render(results, context, directory):
     name = results.attrs["experiment"]
     plotting = plot_noise_sampling if name == "noise_sampling" else plot_background_flow
     figure = plotting(results, context.config)
-    paths = list(save_figure(figure, directory / "figures" / name, context.config).values())
+    paths = list(save_figure(figure, directory / name, context.config).values())
     plt.close(figure)
     if name == "noise_sampling":
         geometry = plot_noise_geometry(context)
-        paths += list(save_figure(geometry, directory / "figures" / "sampling_geometry", context.config).values())
+        paths += list(save_figure(geometry, directory / "sampling_geometry", context.config).values())
         plt.close(geometry)
     write_report(results, context, directory)
+    from manuscript_figures import figure_directory, write_index
+    write_index(figure_directory(directory))
     save_plot_metadata(directory, context, paths)
     return paths
 

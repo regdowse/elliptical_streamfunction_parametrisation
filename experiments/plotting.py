@@ -190,10 +190,7 @@ def plot_noise_geometry(context):
 
 
 def save_figure(figure, stem, config):
-    stem.parent.mkdir(parents=True, exist_ok=True)
-    paths = {}
-    for extension in config.values["plotting"]["formats"]:
-        path = stem.with_suffix("." + extension)
-        figure.savefig(path, dpi=config.values["plotting"]["dpi"], bbox_inches="tight")
-        paths[extension] = path
-    return paths
+    from manuscript_figures import save_manuscript_figure
+    path = save_manuscript_figure(figure,stem.name,stem.parent,
+                                 dpi=config.values["plotting"]["dpi"],bbox_inches="tight")
+    return {"png":path}

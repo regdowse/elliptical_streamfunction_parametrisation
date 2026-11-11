@@ -16,5 +16,5 @@
     "Omega_error_s_1": 1e-7, "aspect_ratio_error": 0.005, "Rc_error_m": 1000},
   "plot": {"limits_km": [-100, 100], "grid_limits_m": [-250000, 250000], "grid_points": 501,
     "quiver_stride": 10, "quiver_scale": 40, "velocity_limits_m_s": [-4, 4],
-    "outer_radius_limit_km": 110, "colors": ["red", "green", "blue"], "dpi": 300, "formats": ["pdf", "png"]}
+    "outer_radius_limit_km": 110, "colors": ["red", "green", "blue"], "dpi": 300, "formats": ["png"]}
 }

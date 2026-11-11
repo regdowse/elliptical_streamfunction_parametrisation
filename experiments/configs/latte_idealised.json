@@ -16,5 +16,5 @@
   "inversion": {"outer_Rc_max_m": null},
   "plot": {"limits_km": [-75, 75], "grid_limits_m": [-250000, 250000], "grid_points": 501,
     "quiver_stride": 10, "quiver_scale": 40, "outer_radius_limit_km": 100,
-    "colors": ["tab:orange", "tab:green", "tab:red", "tab:pink"], "dpi": 300, "formats": ["pdf", "png"]}
+    "colors": ["tab:orange", "tab:green", "tab:red", "tab:pink"], "dpi": 300, "formats": ["png"]}
 }

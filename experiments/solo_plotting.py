@@ -1,11 +1,13 @@
 """SOLO manuscript figures drawn exclusively from saved observations and fits."""
 from datetime import datetime, timezone
 import json
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from experiments.outputs import sha256
+from manuscript_figures import save_manuscript_figure
 
 
 def field_axes(ax, data, config):
@@ -310,20 +312,15 @@ def render(data, config, directory):
     plt.rcParams.update({"pdf.fonttype":42,"ps.fonttype":42})
     figures = {"SOLO":plot_cases,"SOLO_outercore_fits":plot_outer,
                "Improved_MOCA":plot_comparison,"SOLO_AR_Err":plot_deformation}
-    output = directory/"figures"
-    output.mkdir(exist_ok=True)
     paths = []
     for name,plotter in figures.items():
         fig = plotter(data,config)
         try:
-            for extension in config["plot"]["formats"]:
-                path = output/f"{name}.{extension}"
-                fig.savefig(path,dpi=config["plot"]["dpi"])
-                paths.append(path)
+            paths.append(save_manuscript_figure(fig,name,directory,dpi=config["plot"]["dpi"]))
         finally:
             plt.close(fig)
-    metadata = dict(utc=datetime.now(timezone.utc).isoformat(),plot=config["plot"],
+    metadata = dict(utc=datetime.now(timezone.utc).isoformat(),plot={**config["plot"],"formats":["png"]},
         source_sha256=sha256(__file__),run_metadata_sha256=sha256(directory/"run_metadata.json"),
-        figures_sha256={str(p.relative_to(directory)):sha256(p) for p in paths})
+        figures_sha256={os.path.relpath(p,directory):sha256(p) for p in paths})
     (directory/"plot_metadata.json").write_text(json.dumps(metadata,indent=2)+"\n")
     return paths
