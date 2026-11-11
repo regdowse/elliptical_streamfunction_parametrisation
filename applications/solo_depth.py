@@ -357,9 +357,9 @@ def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None,inclu
     tracked=results.loc[(results.depth_m>=shallow)&(results.depth_m<=deep)]
     rc_ax.plot(tracked.Rc/1000,tracked.depth_m,'.-',color=radius_color,lw=2.5,ms=5)
     omega_ax.plot(tracked.Omega,tracked.depth_m,'.-',color=omega_color,lw=2.5,ms=5)
-    rc_ax.set_xlabel(r'$\mathbf{R_c}$ (km)', fontweight='bold')
+    rc_ax.set_xlabel(r'Characteristic radius $\mathbf{R_c}$ (km)', fontweight='bold')
     rc_ax.set(ylabel='Depth (m)',ylim=(deep,shallow))
-    omega_ax.set_xlabel(r'$\mathbf{\Omega}$ (s$\mathbf{^{-1}}$)',color=omega_color, fontweight='bold')
+    omega_ax.set_xlabel(r'Angular velocity $\mathbf{\Omega}$ (s$\mathbf{^{-1}}$)',color=omega_color, fontweight='bold')
     rc_ax.xaxis.label.set_color(radius_color)
     rc_ax.tick_params(axis='x',colors=radius_color)
     omega_ax.tick_params(axis='x',colors=omega_color)
@@ -511,8 +511,10 @@ def slices_3d(results,samples,settings,*,figure=None,subplot_spec=None,include_c
            xlim=settings['x_limits_km'],ylim=settings['y_limits_km'],
            zlim=(results.loc[results.inner_valid,'depth_m'].max()+30,0),)
         #    title='SOLO horizontal slices and centreline — vertical scale exaggerated')
-    ax.set_xticks(np.linspace(*settings['x_limits_km'],5)[1:-1])
-    ax.set_yticks(np.linspace(*settings['y_limits_km'],5)[1:-1])
+    for limits,set_ticks in ((settings['x_limits_km'],ax.set_xticks),
+                             (settings['y_limits_km'],ax.set_yticks)):
+        set_ticks(np.arange(np.ceil(limits[0]/50)*50,
+                            np.floor(limits[1]/50)*50+1,50))
     ax.set_box_aspect((1,1,1.6))
     ax.view_init(elev=settings['slice_elevation_deg'],azim=settings['slice_azimuth_deg'])
 
