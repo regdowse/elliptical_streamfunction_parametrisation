@@ -291,7 +291,7 @@ def vertical_sections(results,settings):
             (x,y,x,y),(zonal,meridional,zonal_vorticity,meridional_vorticity),
             (x_roots,y_roots,x_roots,y_roots),(results.xc,results.yc,results.xc,results.yc),
             ('x (km)','y (km)','x (km)','y (km)'),
-            (r'v (ms$^{-1}$)',r'u (ms$^{-1}$)',r'Zonal $\zeta$ (s$^{-1}$)',r'Meridional $\zeta$ (s$^{-1}$)'),
+            (r'v (ms$^{-1}$)',r'u (ms$^{-1}$)',r'$\zeta$ (s$^{-1}$)',r'$\zeta$ (s$^{-1}$)'),
             (levels,levels,vorticity_levels,vorticity_levels)):
         if len(depths)>=2 and np.isfinite(values).any():
             image=ax.contourf(coordinate/1000,depths,np.ma.masked_invalid(values),levels=panel_levels,
@@ -299,7 +299,7 @@ def vertical_sections(results,settings):
             fig.colorbar(image,ax=ax,location='top',label=component)
         else:
             ax.text(.5,.5,'No supported depth reconstruction',ha='center',transform=ax.transAxes)
-        # ax.plot(centre.where(results.inner_valid)/1000,depths,color='orange',lw=2,label='Projected centreline')
+        ax.plot(centre.where(results.inner_valid)/1000,depths,color='orange',lw=2.5,label='Projected centreline')
         for branch in range(2):
             ax.plot(roots[:,branch]/1000,depths,'r--',lw=2.5,
                     label='Peak-contour intersection' if branch==0 else None)
@@ -312,13 +312,106 @@ def vertical_sections(results,settings):
     # contour intersections inspectable without another estimator call.
     data=dict(depth_m=depths,x_m=x,y_m=y,zonal_v_m_s=zonal,meridional_u_m_s=meridional,
               zonal_vorticity_s_1=zonal_vorticity,meridional_vorticity_s_1=meridional_vorticity,
-              vorticity_limit_s_1=vorticity_limit,
+              vorticity_limit_s_1=vorticity_limit,vorticity_levels_s_1=vorticity_levels,
               x_peak_roots_m=x_roots,y_peak_roots_m=y_roots,
               x_plane_m=x_plane,y_plane_m=y_plane,velocity_limit_m_s=limit)
     return fig,data
 
 
-def slices_3d(results,samples,settings):
+def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None):
+    """Draw 3×1 companion panels, reusing the existing section arrays."""
+    accepted=results.loc[results.inner_valid].sort_values('depth_m')
+    if accepted.empty:
+        raise ValueError('Companion panels require accepted inner centres')
+    shallow,deep=accepted.depth_m.iloc[[0,-1]].to_numpy(float)
+    within=(section_data['depth_m']>=shallow)&(section_data['depth_m']<=deep)
+    depths=section_data['depth_m'][within]
+    if len(depths)<2:
+        raise ValueError('Companion panels need at least two measured depth levels')
+    fig=figure if figure is not None else plt.figure(figsize=(7,13),layout='constrained')
+    grid_factory=fig.add_gridspec if subplot_spec is None else subplot_spec.subgridspec
+    grid=grid_factory(3,2,width_ratios=[1,.045],height_ratios=[1.05,1,1])
+    section_ax=fig.add_subplot(grid[0,0]);section_cax=fig.add_subplot(grid[0,1])
+    values=section_data['zonal_vorticity_s_1'][within]
+    # Reuse the original contour intervals as well as its fixed-plane values.
+    levels=section_data['vorticity_levels_s_1']
+    if np.isfinite(values).any():
+        image=section_ax.contourf(section_data['x_m']/1000,depths,
+            np.ma.masked_invalid(values),levels=levels,cmap='RdBu_r',
+            extend='both',corner_mask=False)
+        fig.colorbar(image,cax=section_cax,label=r'Relative vorticity $\omega$ (s$^{-1}$)')
+    else:
+        section_ax.text(.5,.5,'No supported reconstruction',ha='center',transform=section_ax.transAxes)
+        section_cax.set_visible(False)
+    for branch in range(2):
+        section_ax.plot(section_data['x_peak_roots_m'][within,branch]/1000,depths,'r--',lw=2.5)
+    section_ax.plot(accepted.xc/1000,accepted.depth_m,color='orange',lw=2.5)
+    section_ax.set(xlabel='x (km)',ylabel='Depth (m)',ylim=(deep,shallow),
+        xlim=(section_data['x_m'][0]/1000,section_data['x_m'][-1]/1000),)
+        # title=f"Zonal vorticity · y={section_data['y_plane_m']/1000:.2f} km")
+    # section_ax.set_ylim(None, 0)
+
+    rc_ax=fig.add_subplot(grid[1,0]);omega_ax=rc_ax.twiny()
+    radius_color='saddlebrown';omega_color='dodgerblue'
+    tracked=results.loc[(results.depth_m>=shallow)&(results.depth_m<=deep)]
+    rc_ax.plot(tracked.Rc/1000,tracked.depth_m,'.-',color=radius_color,lw=2.5,ms=5)
+    omega_ax.plot(tracked.Omega,tracked.depth_m,'.-',color=omega_color,lw=2.5,ms=5)
+    rc_ax.set_xlabel(r'$\mathbf{R_c}$ (km)', fontweight='bold')
+    rc_ax.set(ylabel='Depth (m)',ylim=(deep,shallow))
+    omega_ax.set_xlabel(r'$\mathbf{\Omega}$ (s$\mathbf{^{-1}}$)',color=omega_color, fontweight='bold')
+    rc_ax.xaxis.label.set_color(radius_color)
+    rc_ax.tick_params(axis='x',colors=radius_color)
+    omega_ax.tick_params(axis='x',colors=omega_color)
+    omega_ax.xaxis.get_offset_text().set_color(omega_color)
+    rc_ax.spines['bottom'].set_color(radius_color)
+    omega_ax.spines['top'].set_color(omega_color)
+    rc_ax.set_ylim(None, 0)
+
+    track_ax=fig.add_subplot(grid[2,0]);track_cax=fig.add_subplot(grid[2,1])
+    # Retain NaN breaks rather than connecting across any rejected inner bins.
+    # Draw deep segments first so shallower segments overlie them at crossings.
+    bird_track=tracked.iloc[::-1]
+    xy=bird_track[['east_offset_km','north_offset_km']].to_numpy(float)
+    z=bird_track.depth_m.to_numpy(float)
+    depth_norm=Normalize(shallow,deep)
+    depth_cmap=plt.get_cmap('cool_r')
+    depth_span=max(deep-shallow,1.)
+    # Give every segment AND sampling dot its own depth-based priority. A
+    # separate all-dot layer would put deep dots on top of shallow segments.
+    for i in range(len(z)):
+        if i and np.isfinite(xy[i-1:i+1]).all():
+            segment_depth=(z[i-1]+z[i])/2
+            track_ax.plot(xy[i-1:i+1,0],xy[i-1:i+1,1],
+                color=depth_cmap(depth_norm(segment_depth)),lw=2.5,
+                zorder=2+(deep-segment_depth)/depth_span)
+        # if np.isfinite(xy[i]).all():
+        #     track_ax.scatter(xy[i,0],xy[i,1],color=depth_cmap(depth_norm(z[i])),
+        #         marker='.',s=30,zorder=2+(deep-z[i])/depth_span)
+    points=ScalarMappable(norm=depth_norm,cmap=depth_cmap)
+    # track_ax.scatter(*xy[-1],marker='o',s=65,facecolors='none',edgecolors='black',zorder=4,label=f'{shallow:g} m')
+    # track_ax.scatter(*xy[0],marker='x',s=50,color='black',zorder=4,label=f'{deep:g} m')
+    track_ax.autoscale_view();track_ax.margins(.12)
+    track_ax.set(xlabel=r'$x_c$ offset (km)',
+                 ylabel=r'$y_c$ offset (km)')
+    track_ax.set_aspect('equal',adjustable='box')
+    # track_ax.legend(loc='best',fontsize=8)
+    colorbar=fig.colorbar(points,cax=track_cax,label='Depth (m)')
+    colorbar.ax.invert_yaxis()
+    # Follow the actual equal-aspect plot height, not the full GridSpec row.
+    from matplotlib.transforms import Bbox
+    def depth_colorbar_position(bar_ax,renderer):
+        plot_box=track_ax.get_position()
+        bar_box=bar_ax.get_position(original=True)
+        height=.95*plot_box.height
+        return Bbox.from_bounds(bar_box.x0,plot_box.y0+(plot_box.height-height)/2,
+                                bar_box.width,height)
+    track_cax.set_axes_locator(depth_colorbar_position)
+    for ax,label in ((section_ax,'b)'),(rc_ax,'c)'),(track_ax,'d)')):
+        ax.text(-.10,1.03,label,transform=ax.transAxes,fontweight='bold',fontsize=12)
+    return fig
+
+
+def slices_3d(results,samples,settings,*,figure=None,subplot_spec=None,include_colorbar=True):
     supported=results[results.outer_valid]
     if supported.empty:
         raise ValueError('No supported reconstruction available for 3D slices')
@@ -359,14 +452,16 @@ def slices_3d(results,samples,settings):
     if levels[-1] < settings['slice_speed_max_m_s']:
         levels=np.r_[levels,settings['slice_speed_max_m_s']]
     norm=Normalize(0,settings['slice_speed_max_m_s'])
-    fig=plt.figure(figsize=(11,10),layout='constrained')
-    ax=fig.add_subplot(111,projection='3d',computed_zorder=False)
+    fig=figure if figure is not None else plt.figure(figsize=(11,10),layout='constrained')
+    ax=fig.add_subplot(111 if subplot_spec is None else subplot_spec,
+                       projection='3d',computed_zorder=False)
     theta=np.linspace(0,2*np.pi,180)
     span=settings['x_limits_km'][1]-settings['x_limits_km'][0]
     # Match 2D quiver convention: bigger scale -> shorter arrows.
     observed_length=span/settings['slice_observed_quiver_scale']
     model_length=span/settings['slice_model_quiver_scale']
-    linewidth=settings['slice_quiver_width']*fig.get_figwidth()*72
+    # Keep the standalone arrow weight when composing into a wider figure.
+    linewidth=settings['slice_quiver_width']*11*72
     stride=settings['slice_model_quiver_spacing']
     for layer_index,z in enumerate(sorted(depths,reverse=True)):
         layer_order=10*layer_index
@@ -438,6 +533,21 @@ def slices_3d(results,samples,settings):
         lw=settings['slice_centreline_width'],zorder=18)
     fig._solo_centreline_paths=(lower_line,upper_line)
     # ax.legend()
-    fig.colorbar(ScalarMappable(norm=norm,cmap='Blues_r'),ax=ax,
-                 label=r'Current speed (ms$^{-1}$)',shrink=.5,pad=0.0)
+    if include_colorbar:
+        fig.colorbar(ScalarMappable(norm=norm,cmap='Blues_r'),ax=ax,
+                     label=r'Current speed (ms$^{-1}$)',shrink=.5,pad=0.0)
     return fig,depths
+
+
+def combined_manuscript_figure(results,samples,section_data,settings):
+    """Compose the existing 3D view and companion panels without refitting."""
+    fig=plt.figure(figsize=(16.5,10),layout='constrained')
+    fig.get_layout_engine().set(wspace=0.0, w_pad=0.0)
+    grid=fig.add_gridspec(1,2,width_ratios=[2,1])
+    slices_3d(results,samples,settings,figure=fig,subplot_spec=grid[0,0],
+              include_colorbar=False)
+    # The 3D axes retain a square drawing area inside a wider GridSpec cell.
+    # Align that area towards the companion panels instead of centring it.
+    fig.axes[0].set_anchor('E')
+    manuscript_panels(results,section_data,figure=fig,subplot_spec=grid[0,1])
+    return fig

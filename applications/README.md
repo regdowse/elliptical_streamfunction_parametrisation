@@ -137,9 +137,10 @@ lower path, middle slice, upper path, top slice. This is intended for the config
 publication view; arbitrary rotations do not recompute physical occlusion.
 No fitted centres or parameters are changed by this display ordering.
 
-Six figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
+Seven figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
 `solo_diagnostics`, `solo_sadcp`, `solo_depth_profiles`,
-`solo_horizontal_reconstructions`, `solo_vertical_sections`, and `solo_depth_slices_3d`.
+`solo_horizontal_reconstructions`, `solo_vertical_sections`, `solo_depth_slices_3d`,
+and `solo_manuscript_panels`.
 The 1×4 vertical sections appear before the 3D plot. Both planes pass through
 the accepted 37-m centre: the zonal plane plots signed northward velocity v;
 the meridional plane plots signed eastward velocity u. They share a zero-centred
@@ -159,6 +160,22 @@ fixed plane, following the same peak contour as the horizontal maps. They are
 not extrema of the plotted component. Missing intersections and unsupported
 depths remain blank; no depth gaps are filled. `vertical_sections.npz` saves the
 section coordinates, signed fields, contour intersections and plane positions.
+
+A standalone **3×1 manuscript companion** is plotted after the current 3D figure,
+without combining or replacing the existing figures. Its first panel reuses the
+zonal vorticity section and red peak-contour intersections, with a right-hand
+vertical colour bar. The second plots final Ω on a pink upper x-axis and Rc on
+a dark-yellow lower x-axis, with measured-depth dots and depth increasing down.
+The third shows the equal-scale centre trajectory as east/north offsets from
+the 37-m centre, coloured by depth with dots and a vertical depth colour bar.
+All three use the full accepted centre-depth range, independently of selected
+3D slices; missing outer fits remain gaps. The colour scale and contour levels
+are reused from the section plot, not recomputed or refitted.
+
+A new combined figure follows the standalone companion: the same 3D view on
+the left and the three companion panels on the right, with a 2:1 width
+allocation. It saves as `solo_manuscript_combined.png` and `.pdf`, without a
+3D speed colour bar. The standalone figures and `solo_sadcp` remain available.
 
 `parameters.csv` now contains **all attempted depths**, including the stopping
 failure, rather than one near-surface row. `observation_selection.csv` records

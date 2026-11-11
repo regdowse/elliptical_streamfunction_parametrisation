@@ -67,7 +67,7 @@
     "section_velocity_max_m_s": null,
     "section_contour_step_m_s": 0.1,
     "section_vorticity_max_s_1": null,
-    "section_vorticity_contour_step_s_1": 2e-06
+    "section_vorticity_contour_step_s_1": 0.6e-05
   },
   "application": "solo",
   "inputs": {
