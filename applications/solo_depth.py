@@ -169,7 +169,7 @@ def diagnostic(results, fits, depth):
 def profiles(results):
     fig,axes = plt.subplots(1,4,figsize=(14,5),sharey=True,layout='constrained')
     for ax,key,label,scale in zip(axes,['east_offset_km','north_offset_km','Omega','Rc'],
-            ['Eastward offset (km)','Northward offset (km)','Final Ω (s⁻¹)','Supported Rc (km)'],[1,1,1,1000]):
+            ['x offset (km)','y offset (km)','Ω (s⁻¹)','Rc (km)'],[1,1,1,1000]):
         ax.plot(results[key]/scale,results.depth_m,'.-')
         ax.set_xlabel(label);ax.grid(alpha=.2)
     axes[0].set_ylabel('Depth (m)');axes[0].invert_yaxis()
@@ -226,8 +226,17 @@ def _section_peak_intersections(xc,yc,Q,Rc,x_plane,y_plane):
     return x_roots,y_roots
 
 
+def _gaussian_vorticity(x,y,xc,yc,Q,Omega,Rc):
+    """Analytic -Laplacian(psi) for the stored Gaussian streamfunction, in s^-1."""
+    dx,dy=np.asarray(x)-xc,np.asarray(y)-yc
+    qx=Q[0,0]*dx+Q[0,1]*dy
+    qy=Q[1,0]*dx+Q[1,1]*dy
+    rho2=dx*qx+dy*qy
+    return Omega*np.exp(-rho2/Rc**2)*(np.trace(Q)-2*(qx*qx+qy*qy)/Rc**2)
+
+
 def vertical_sections(results,settings):
-    """Signed cross-section velocities through the fixed 37-m centre.
+    """Signed velocity and analytic vorticity through the fixed 37-m centre.
 
     Model evaluation and contour intersections only, without fitting or filling
     unsupported depth rows. The orange centreline is projected onto each plane.
@@ -244,6 +253,8 @@ def vertical_sections(results,settings):
     depths=results.depth_m.to_numpy(float)
     zonal=np.full((len(depths),len(x)),np.nan)
     meridional=np.full((len(depths),len(y)),np.nan)
+    zonal_vorticity=np.full_like(zonal,np.nan)
+    meridional_vorticity=np.full_like(meridional,np.nan)
     x_roots=np.full((len(depths),2),np.nan)
     y_roots=np.full((len(depths),2),np.nan)
     for i,row in enumerate(results.itertuples()):
@@ -251,6 +262,8 @@ def vertical_sections(results,settings):
             continue
         _,zonal[i]=esp.model_uv_at_xy(x,np.full_like(x,y_plane),row.xc,row.yc,row.Q,row.Omega,row.Rc)
         meridional[i],_=esp.model_uv_at_xy(np.full_like(y,x_plane),y,row.xc,row.yc,row.Q,row.Omega,row.Rc)
+        zonal_vorticity[i]=_gaussian_vorticity(x,np.full_like(x,y_plane),row.xc,row.yc,row.Q,row.Omega,row.Rc)
+        meridional_vorticity[i]=_gaussian_vorticity(np.full_like(y,x_plane),y,row.xc,row.yc,row.Q,row.Omega,row.Rc)
         x_roots[i],y_roots[i]=_section_peak_intersections(row.xc,row.yc,row.Q,row.Rc,x_plane,y_plane)
     limit=settings['section_velocity_max_m_s']
     if limit is None:
@@ -260,30 +273,46 @@ def vertical_sections(results,settings):
         raise ValueError('section_velocity_max_m_s must be null or positive and finite')
     count=max(1,int(np.ceil(limit/step)))
     levels=np.linspace(-limit,limit,2*count+1)
-    fig,axes=plt.subplots(1,2,figsize=(12,6),sharey=True,layout='constrained')
-    for ax,coordinate,values,roots,centre,label,title,component in zip(axes,
-            (x,y),(zonal,meridional),(x_roots,y_roots),(results.xc,results.yc),
-            ('x (km)','y (km)'),
-            (f'Zonal section · y={y_plane/1000:.2f} km',f'Meridional section · x={x_plane/1000:.2f} km'),
-            ('Northward velocity v (m/s)','Eastward velocity u (m/s)')):
+    vorticity_step=settings['section_vorticity_contour_step_s_1']
+    if not np.isfinite(vorticity_step) or vorticity_step<=0:
+        raise ValueError('section_vorticity_contour_step_s_1 must be positive and finite')
+    vorticity_limit=settings['section_vorticity_max_s_1']
+    if vorticity_limit is None:
+        finite=np.r_[zonal_vorticity[np.isfinite(zonal_vorticity)],
+                     meridional_vorticity[np.isfinite(meridional_vorticity)]]
+        vorticity_limit=(max(vorticity_step,np.ceil(np.max(np.abs(finite))/vorticity_step)*vorticity_step)
+                         if len(finite) else vorticity_step)
+    if not np.isfinite(vorticity_limit) or vorticity_limit<=0:
+        raise ValueError('section_vorticity_max_s_1 must be null or positive and finite')
+    vorticity_count=max(1,int(np.ceil(vorticity_limit/vorticity_step)))
+    vorticity_levels=np.linspace(-vorticity_limit,vorticity_limit,2*vorticity_count+1)
+    fig,axes=plt.subplots(1,4,figsize=(20,6),sharey=True,layout='constrained')
+    for ax,coordinate,values,roots,centre,label,component,panel_levels in zip(axes,
+            (x,y,x,y),(zonal,meridional,zonal_vorticity,meridional_vorticity),
+            (x_roots,y_roots,x_roots,y_roots),(results.xc,results.yc,results.xc,results.yc),
+            ('x (km)','y (km)','x (km)','y (km)'),
+            (r'v (ms$^{-1}$)',r'u (ms$^{-1}$)',r'Zonal $\zeta$ (s$^{-1}$)',r'Meridional $\zeta$ (s$^{-1}$)'),
+            (levels,levels,vorticity_levels,vorticity_levels)):
         if len(depths)>=2 and np.isfinite(values).any():
-            image=ax.contourf(coordinate/1000,depths,np.ma.masked_invalid(values),levels=levels,
+            image=ax.contourf(coordinate/1000,depths,np.ma.masked_invalid(values),levels=panel_levels,
                              cmap='RdBu_r',extend='both',corner_mask=False)
             fig.colorbar(image,ax=ax,location='top',label=component)
         else:
             ax.text(.5,.5,'No supported depth reconstruction',ha='center',transform=ax.transAxes)
-        ax.plot(centre.where(results.inner_valid)/1000,depths,color='orange',lw=2,label='Projected centreline')
+        # ax.plot(centre.where(results.inner_valid)/1000,depths,color='orange',lw=2,label='Projected centreline')
         for branch in range(2):
-            ax.plot(roots[:,branch]/1000,depths,'r--',lw=1.5,
+            ax.plot(roots[:,branch]/1000,depths,'r--',lw=2.5,
                     label='Peak-contour intersection' if branch==0 else None)
-        ax.set(xlabel=label,title=title,xlim=(coordinate[0]/1000,coordinate[-1]/1000))
+        ax.set(xlabel=label,xlim=(coordinate[0]/1000,coordinate[-1]/1000))
     axes[0].set_ylabel('Depth (m)')
     axes[0].set_ylim(depths.max(),depths.min())
-    axes[0].legend(loc='lower left',fontsize=8)
-    fig.suptitle('Fixed section planes through the 37-m centre')
+    # axes[0].legend(loc='lower left',fontsize=8)
+    # fig.suptitle('Fixed section planes through the 37-m centre')
     # Saved display data make plane locations, signed components and actual
     # contour intersections inspectable without another estimator call.
     data=dict(depth_m=depths,x_m=x,y_m=y,zonal_v_m_s=zonal,meridional_u_m_s=meridional,
+              zonal_vorticity_s_1=zonal_vorticity,meridional_vorticity_s_1=meridional_vorticity,
+              vorticity_limit_s_1=vorticity_limit,
               x_peak_roots_m=x_roots,y_peak_roots_m=y_roots,
               x_plane_m=x_plane,y_plane_m=y_plane,velocity_limit_m_s=limit)
     return fig,data
@@ -364,7 +393,7 @@ def slices_3d(results,samples,settings):
                 np.full_like(theta,z),'r--',lw=2,zorder=layer_order+4, alpha=.7)
         if z == min(depths):
             # ax.scatter(row.xc/1000,row.yc/1000,z,marker='x',color='r',s=50,zorder=layer_order+5)
-            ax.scatter(row.xc/1000,row.yc/1000,z,marker='.',color='orange',s=80,zorder=layer_order+5)
+            ax.scatter(row.xc/1000,row.yc/1000,z,marker='.',color='gold',s=80,zorder=layer_order+5)
         # Place the glyphs in the horizontal plane, rather than facing the camera.
         from matplotlib.textpath import TextPath
         from matplotlib.patches import PathPatch

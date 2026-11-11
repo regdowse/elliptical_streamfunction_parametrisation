@@ -27,12 +27,12 @@
   },
   "plot": {
     "x_limits_km": [
-      -150,
-      150
+      -125,
+      125
     ],
     "y_limits_km": [
-      -150,
-      150
+      -125,
+      125
     ],
     "quiver_spacing": 10,
     "quiver_scale": 15,
@@ -60,12 +60,14 @@
     "slice_model_quiver_scale": 15.0,
     "slice_quiver_width": 0.001,
     "slice_model_quiver_spacing": 10,
-    "slice_elevation_deg": 30.0,
-    "slice_azimuth_deg": -60.0,
+    "slice_elevation_deg": 32.0,
+    "slice_azimuth_deg": -75.0,
     "slice_centreline_width": 3.0,
     "slice_grid_points": 151,
     "section_velocity_max_m_s": null,
-    "section_contour_step_m_s": 0.05
+    "section_contour_step_m_s": 0.1,
+    "section_vorticity_max_s_1": null,
+    "section_vorticity_contour_step_s_1": 2e-06
   },
   "application": "solo",
   "inputs": {

@@ -140,10 +140,18 @@ No fitted centres or parameters are changed by this display ordering.
 Six figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
 `solo_diagnostics`, `solo_sadcp`, `solo_depth_profiles`,
 `solo_horizontal_reconstructions`, `solo_vertical_sections`, and `solo_depth_slices_3d`.
-The 1×2 vertical sections appear before the 3D plot. Both planes pass through
+The 1×4 vertical sections appear before the 3D plot. Both planes pass through
 the accepted 37-m centre: the zonal plane plots signed northward velocity v;
 the meridional plane plots signed eastward velocity u. They share a zero-centred
-`RdBu_r` scale. `plot.section_velocity_max_m_s: null` selects an automatic
+`RdBu_r` velocity scale. The third/fourth panels show zonal/meridional vorticity
+computed analytically from −Laplacian(psi), with final outer-fit parameters.
+For circular SOLO, zeta=2 Omega (1−r²/Rc²) exp(−r²/Rc²); this includes the
+outer sign reversal, not just the core value 2 Omega. The vorticity pair has its
+own shared symmetric s⁻¹ scale. `section_vorticity_max_s_1: null` sets it
+automatically; a positive value fixes it. `section_vorticity_contour_step_s_1`
+sets its contour interval. The same red peak-contour intersections remain on
+all four panels, not vorticity extrema or zero crossings.
+`plot.section_velocity_max_m_s: null` selects an automatic
 symmetric limit; a positive value fixes it. `section_contour_step_m_s` sets the
 colour interval. Orange lines are projected inner centres. Red dashed lines are
 intersections with rho²=Rc²/2, including each depth's transverse offset from the
