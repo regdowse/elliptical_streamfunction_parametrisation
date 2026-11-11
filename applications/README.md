@@ -42,7 +42,7 @@ are shared with the repository; generated results are gitignored.
   `diagnostics: true` preserves the existing intermediate plots; set it to false
   to suppress diagnostic fits/scatters while retaining the main results figures.
 - `reconstruction`: SOLO's reconstructed grid extent/resolution.
-- `output_dir`: where this run's three results files are saved.
+- `output_dir`: where this run's results, reports and any exported figures are saved.
 
 DOPPIO and drifter–satellite snapshots are selected by configured UTC dates.
 `snapshot_tolerance_hours` permits small differences such as model time-encoding
@@ -96,6 +96,35 @@ R² shown only for the multi-platform reconstruction.
 by UTC date in `plot.analysis_snapshots_utc` in `configs/doppio.json`, with the
 configured snapshot tolerance. Missing snapshots raise an explicit error.
 
+## SOLO depth tracking
+
+Restart the SOLO notebook kernel and Run All after changing `configs/solo.json`.
+It fits the transect once from `analysis.start_depth_m` (default 37 m) downward.
+Fixed controls are `core_radius_m` (along-track half-width about the preliminary
+flip point), `search_half_width_m` (along-track half-width about the previous
+accepted centre's projection), and `outer_radius_m` (radial selection about the
+new centre). Defaults are 30/100/100 km. Minimum counts, expected rotation sign
+and maximum centre movement are also explicit. An inner rejection stops tracking;
+outer failures leave gaps in final Ω/Rc while accepted centres remain available.
+The 37-m frame is fixed and native finite vectors are used without resampling.
+
+`plot.diagnostic_depth_m: null` uses 37 m; set a measured depth or nearby target
+for VN/VT/outer-fit diagnostics and the retained `solo_sadcp` figure. All use stored
+fit results. `horizontal_depths_m` controls the eight 2×4 map panels.
+`slice_depths_m: null` selects shallowest/middle/deepest supported reconstructions;
+a three-depth list overrides this. Explicit unsupported slices raise an error.
+Offsets always reference the accepted 37-m centre, independently of diagnostic depth.
+
+Five figures (PNG/PDF) are saved under `results/applications/solo/figures/`:
+`solo_diagnostics`, `solo_sadcp`, `solo_depth_profiles`,
+`solo_horizontal_reconstructions`, and `solo_depth_slices_3d`.
+`parameters.csv` now contains **all attempted depths**, including the stopping
+failure, rather than one near-surface row. `observation_selection.csv` records
+actual native vectors and search/inner/outer masks, including unattempted bins.
+The manuscript summary and metadata describe the current depth run and selected
+plot depths. Shared estimators remain in root `functions.py`; depth orchestration
+and stored-fit plotting are in [`solo_depth.py`](solo_depth.py).
+
 ## Datasets and provenance
 
 The bundled files are study extracts, not the complete source archives. File
@@ -121,7 +150,8 @@ ADCP metadata and processing reports are linked from
 
 The MAT extract contains eastward/northward velocities (`u_sadcp`, `v_sadcp`),
 positions, depth bins and timestamps. Depths span **27–807 m**, with approximately
-**15-minute** sampling. Both ADCP examples select the **37-m** bin.
+**15-minute** sampling. LATTE application 1 selects the **37-m** bin; SOLO starts
+at 37 m and tracks downward, with a selectable diagnostic depth.
 
 The corrected extract spans **8 October 2023 23:56:08–31 October 2023 16:37:59**
 (rounded to seconds). The notebook subsets are:

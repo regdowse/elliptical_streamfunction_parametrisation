@@ -10,11 +10,20 @@
   },
   "analysis": {
     "latitude_max": -37.0,
-    "depth_m": 37.0,
     "transect_center_utc": "2023-10-17T13:30:00Z",
     "half_window_hours": 12.0,
-    "core_radius_m": 30000.0,
-    "outer_radius_m": 100000.0
+    "core_radius_m": 20000.0,
+    "outer_radius_m": 80000.0,
+    "start_depth_m": 37.0,
+    "initial_center_m": [
+      0.0,
+      0.0
+    ],
+    "search_half_width_m": 100000.0,
+    "max_centre_step_m": 30000.0,
+    "min_points": 8,
+    "expected_rotation_sign": -1,
+    "require_peak_bracket": true
   },
   "plot": {
     "x_limits_km": [
@@ -27,7 +36,20 @@
     ],
     "quiver_spacing": 10,
     "quiver_scale": 15,
-    "diagnostics": true
+    "diagnostics": true,
+    "diagnostic_depth_m": null,
+    "horizontal_depths_m": [
+      37,
+      100,
+      200,
+      300,
+      400,
+      500,
+      550,
+      600
+    ],
+    "slice_depths_m": null,
+    "speed_max_m_s": 1.5
   },
   "application": "solo",
   "inputs": {
