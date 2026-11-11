@@ -173,9 +173,11 @@ All three use the full accepted centre-depth range, independently of selected
 are reused from the section plot, not recomputed or refitted.
 
 A new combined figure follows the standalone companion: the same 3D view on
-the left and the three companion panels on the right, with a 2:1 width
-allocation. It saves as `solo_manuscript_combined.png` and `.pdf`, without a
-3D speed colour bar. The standalone figures and `solo_sadcp` remain available.
+the left, labelled a) with its speed colour bar, and two companion panels on
+the right: zonal vorticity b) and Ω/Rc profiles c), with a 2:1 width allocation.
+It saves as `solo_manuscript_combined.png` and `.pdf`. The bird's-eye trajectory
+remains in the standalone companion. The standalone figures and `solo_sadcp`
+remain available.
 
 `parameters.csv` now contains **all attempted depths**, including the stopping
 failure, rather than one near-surface row. `observation_selection.csv` records

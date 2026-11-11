@@ -318,8 +318,8 @@ def vertical_sections(results,settings):
     return fig,data
 
 
-def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None):
-    """Draw 3×1 companion panels, reusing the existing section arrays."""
+def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None,include_track=True):
+    """Draw companion panels, optionally including the bird's-eye trajectory."""
     accepted=results.loc[results.inner_valid].sort_values('depth_m')
     if accepted.empty:
         raise ValueError('Companion panels require accepted inner centres')
@@ -330,7 +330,8 @@ def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None):
         raise ValueError('Companion panels need at least two measured depth levels')
     fig=figure if figure is not None else plt.figure(figsize=(7,13),layout='constrained')
     grid_factory=fig.add_gridspec if subplot_spec is None else subplot_spec.subgridspec
-    grid=grid_factory(3,2,width_ratios=[1,.045],height_ratios=[1.05,1,1])
+    heights=[1.05,1,1] if include_track else [1.05,1]
+    grid=grid_factory(len(heights),2,width_ratios=[1,.045],height_ratios=heights)
     section_ax=fig.add_subplot(grid[0,0]);section_cax=fig.add_subplot(grid[0,1])
     values=section_data['zonal_vorticity_s_1'][within]
     # Reuse the original contour intervals as well as its fixed-plane values.
@@ -366,6 +367,11 @@ def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None):
     rc_ax.spines['bottom'].set_color(radius_color)
     omega_ax.spines['top'].set_color(omega_color)
     rc_ax.set_ylim(None, 0)
+
+    if not include_track:
+        for ax,label in ((section_ax,'b)'),(rc_ax,'c)')):
+            ax.text(-.10,1.03,label,transform=ax.transAxes,fontweight='bold',fontsize=12)
+        return fig
 
     track_ax=fig.add_subplot(grid[2,0]);track_cax=fig.add_subplot(grid[2,1])
     # Retain NaN breaks rather than connecting across any rejected inner bins.
@@ -545,9 +551,12 @@ def combined_manuscript_figure(results,samples,section_data,settings):
     fig.get_layout_engine().set(wspace=0.0, w_pad=0.0)
     grid=fig.add_gridspec(1,2,width_ratios=[2,1])
     slices_3d(results,samples,settings,figure=fig,subplot_spec=grid[0,0],
-              include_colorbar=False)
+              include_colorbar=True)
     # The 3D axes retain a square drawing area inside a wider GridSpec cell.
     # Align that area towards the companion panels instead of centring it.
     fig.axes[0].set_anchor('E')
-    manuscript_panels(results,section_data,figure=fig,subplot_spec=grid[0,1])
+    fig.axes[0].text2D(.25,.94,'a)',transform=fig.axes[0].transAxes,
+                       ha='right',va='top',fontweight='bold',fontsize=12)
+    manuscript_panels(results,section_data,figure=fig,subplot_spec=grid[0,1],
+                       include_track=False)
     return fig
