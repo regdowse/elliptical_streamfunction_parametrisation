@@ -6,10 +6,10 @@ ROOT = Path(__file__).resolve().parent
 # Number, filename stem, result folder, generator.
 FIGURES = (
     ('1', 'ESP_schematic', 'experiments/schematic', 'experiments/run.py schematic'),
-    ('2', 'Improved_MOCA', 'experiments/solo_idealised', 'experiments/run.py solo_idealised'),
+    ('2', 'improved_MOCA', 'experiments/solo_idealised', 'experiments/run.py solo_idealised'),
     ('3', 'SOLO', 'experiments/solo_idealised', 'experiments/run.py solo_idealised'),
     ('4', 'SOLO_outercore_fits', 'experiments/solo_idealised', 'experiments/run.py solo_idealised'),
-    ('5', 'SOLO_AR_Err', 'experiments/solo_idealised', 'experiments/run.py solo_idealised'),
+    ('5', 'SOLO_AR_err', 'experiments/solo_idealised', 'experiments/run.py solo_idealised'),
     ('6', 'solo_sadcp', 'applications/solo', 'applications/SOLO_transect_data.ipynb'),
     ('7', 'DOPPIO', 'experiments/doppio_idealised', 'experiments/run.py doppio_idealised'),
     ('8', 'DOPPIO_outercore_fits', 'experiments/doppio_idealised', 'experiments/run.py doppio_idealised'),

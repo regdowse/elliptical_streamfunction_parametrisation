@@ -180,7 +180,7 @@ def write_report(data, config, directory):
     comparison = data["comparison"][["method","xc_m","yc_m","Omega_s_1","centre_error_m"]].copy()
     comparison["Omega_s_1"] = comparison.Omega_s_1.map(lambda v: f"{v:.8e}")
     lines = ["# SOLO idealised validation — manuscript results", "",
-        "Figures: SOLO.png, SOLO_outercore_fits.png, Improved_MOCA.png, SOLO_AR_Err.png; SOLO parameter table.", "",
+        "Figures: SOLO.png, SOLO_outercore_fits.png, improved_MOCA.png, SOLO_AR_err.png; SOLO parameter table.", "",
         "## Truth and design", "",
         f"Gaussian truth: centre ({truth['xc_m']:g}, {truth['yc_m']:g}) m; Rc={truth['rc_m']/1000:g} km; psi0={truth['psi0_m2_s']:g} m²/s; Q=I.",
         f"Omega={-2*truth['psi0_m2_s']/truth['rc_m']**2:.12g} s⁻¹; vorticity=2 Omega. Peak radius=Rc/√2={truth['rc_m']/np.sqrt(2)/1000:.9g} km.",

@@ -142,27 +142,24 @@ def diagnostic(results, fits, depth):
     rows = results[results.depth_m == depth]
     if rows.empty or not rows.iloc[0].inner_valid:
         raise ValueError(f'No accepted inner fit at diagnostic depth {depth:g} m')
-    row, stored = rows.iloc[0],fits[depth]
-    fig,axes = plt.subplots(1,3,figsize=(14,4),layout='constrained')
-    l = stored['l']; p = stored['inner']; dl=l-p['x0']; mask=np.asarray(p['core_mask'],bool)
-    for ax,values,curve,label in zip(axes[:2],(stored['VN'],stored['VT']),
-            (p['C']*dl+p['D']*dl**3,p['A']+p['B']*dl**2),('VN','VT')):
-        ax.scatter(l/1000,values,color='.65',s=15,label='Search observations')
-        ax.scatter(l[mask]/1000,values[mask],color='m',s=18,label='Inner fit')
-        ylim = ax.get_ylim()
-        ax.plot(l/1000,curve,color='k',lw=1)
-        ax.set_ylim(ylim)
-        ax.axvline(p['x0']/1000,color='k',ls='--',lw=.8)
-        ax.set(xlabel='Along-track coordinate (km)',ylabel=f'{label} (m/s)')
-    axes[0].legend(fontsize=8)
-    if stored['outer'].get('status') == 'optimized':
-        esp.plot_outer_core_fit(stored['outer'],ax=axes[2],km_flag=True,pred_flag=True)
-        axes[2].set_title(f'Outer fit · Rc={row.candidate_Rc_m/1000:.1f} km',fontsize=10)
-        if not row.outer_valid:
-            axes[2].set_title('Candidate only: '+row.status.replace('_',' '))
-    else:
-        axes[2].text(.05,.5,row.status.replace('_',' '),transform=axes[2].transAxes)
-    fig.suptitle(f'SOLO stored fit — {depth:g} m')
+    # Match solo(..., plot=True) using its stored coefficients and selected data.
+    # The outer fit remains in the subsequent reconstruction/outer-fit figure.
+    stored = fits[depth]
+    p = stored['inner']; mask=np.asarray(p['core_mask'],bool)
+    l = stored['l'][mask]
+    lfit = np.linspace(l.min(),l.max(),500)
+    dl = lfit-p['x0']
+    fig,axes = plt.subplots(1,2,figsize=(10,4))
+    for ax,values,curve,tangent,label in zip(axes,(stored['VN'],stored['VT']),
+            (p['C']*dl+p['D']*dl**3,p['A']+p['B']*dl**2),
+            (p['C']*dl,np.full_like(lfit,p['A'])),('v_normal','v_tangential')):
+        ax.scatter(l/1000,values[mask])
+        ax.plot(lfit/1000,curve)
+        ax.plot(lfit/1000,tangent,color='tab:orange')
+        ax.axvline(p['x0']/1000,linestyle='--')
+        ax.set(xlabel=r'Along track distance (km)',ylabel=label,title=f'{label} fit')
+    axes[0].axhline(0,linewidth=.8)
+    fig.tight_layout()
     return fig
 
 
@@ -507,9 +504,11 @@ def slices_3d(results,samples,settings,*,figure=None,subplot_spec=None,include_c
         label_patch=PathPatch(label_path,facecolor='white',edgecolor='none',zorder=layer_order+7)
         ax.add_patch(label_patch)
         pathpatch_2d_to_3d(label_patch,z=z,zdir='z')
-    ax.set(xlabel='x (km)',ylabel='y (km)',zlabel='Depth (m)',
+    ax.set(ylabel='y (km)',
            xlim=settings['x_limits_km'],ylim=settings['y_limits_km'],
            zlim=(results.loc[results.inner_valid,'depth_m'].max()+30,0),)
+    ax.set_xlabel('x (km)', labelpad=0); ax.tick_params(axis='x', pad=0)
+    ax.set_zlabel('Depth (m)', labelpad=8)
         #    title='SOLO horizontal slices and centreline — vertical scale exaggerated')
     for limits,set_ticks in ((settings['x_limits_km'],ax.set_xticks),
                              (settings['y_limits_km'],ax.set_yticks)):

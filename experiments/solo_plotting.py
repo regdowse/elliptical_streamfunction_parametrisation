@@ -311,7 +311,7 @@ def plot_deformation(data, config):
 def render(data, config, directory):
     plt.rcParams.update({"pdf.fonttype":42,"ps.fonttype":42})
     figures = {"SOLO":plot_cases,"SOLO_outercore_fits":plot_outer,
-               "Improved_MOCA":plot_comparison,"SOLO_AR_Err":plot_deformation}
+               "improved_MOCA":plot_comparison,"SOLO_AR_err":plot_deformation}
     paths = []
     for name,plotter in figures.items():
         fig = plotter(data,config)

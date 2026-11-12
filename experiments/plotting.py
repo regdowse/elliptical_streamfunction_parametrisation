@@ -129,7 +129,7 @@ def plot_background_flow(results, config, caption_flag=False):
         ax.set_xticks(100*np.asarray(config.values["background"]["fractions"]))
     handles = [Line2D([], [], color=settings["method_colors"][m], label=m) for m in config.methods]
     handles += [Line2D([], [], color=".3", linestyle=settings["direction_styles"][d],
-                        label="Eastward (SOLO)" if d == "eastward" else "Northward")
+                        label="Eastward (SOLO only)" if d == "eastward" else "Northward")
                 for d in ("eastward", "northward")]
     fig.legend(handles=handles, loc="upper center", ncol=5, frameon=False)
     if caption_flag:
@@ -181,9 +181,9 @@ def plot_noise_geometry(context):
             if col == 0: ax.set_ylabel("y (km)")
             if row == 2: ax.set_xlabel("x (km)")
     _geometry_legend(fig, c)
-    fig.text(.5, .01, f"{c.values['manuscript']['sampling_geometry_figure']}. Actual fixed observation locations used at each density; N counts unique velocity vectors.\n"
-             "N_outer counts unique locations with true r > Rc/√2. DOPPIO's intersection is counted once.\n"
-             "HIGH panels (c), (f), (i) are reused for background flow: SOLO eastward/northward; DOPPIO/LATTE northward only.", ha="center", va="bottom")
+    # fig.text(.5, .01, f"{c.values['manuscript']['sampling_geometry_figure']}. Actual fixed observation locations used at each density; N counts unique velocity vectors.\n"
+    #          "N_outer counts unique locations with true r > Rc/√2. DOPPIO's intersection is counted once.\n"
+    #          "HIGH panels (c), (f), (i) are reused for background flow: SOLO eastward/northward; DOPPIO/LATTE northward only.", ha="center", va="bottom")
     fig.tight_layout(rect=(0, .09, 1, .95))
     return fig
 

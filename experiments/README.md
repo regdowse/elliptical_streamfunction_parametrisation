@@ -24,10 +24,10 @@ Figure numbers follow the manuscript, including the intervening real-data figure
 | Manuscript figure | Idealised output filename |
 | --- | --- |
 | 1 | `ESP_schematic.png` |
-| 2 | `Improved_MOCA.png` |
+| 2 | `improved_MOCA.png` |
 | 3 | `SOLO.png` |
 | 4 | `SOLO_outercore_fits.png` |
-| 5 | `SOLO_AR_Err.png` |
+| 5 | `SOLO_AR_err.png` |
 | 7 | `DOPPIO.png` |
 | 8 | `DOPPIO_outercore_fits.png` |
 | 11 | `LATTE.png` |
@@ -51,8 +51,8 @@ The run produces four PNG figures under
 | --- | --- |
 | `SOLO` | Six transects varying proximity and full length; observations and inner-core linearisations |
 | `SOLO_outercore_fits` | Normalised tangential observations and stored outer fits for the same six cases |
-| `Improved_MOCA` | Conceptual modification of MOCA using ideal inner-core SOLO inputs |
-| `SOLO_AR_Err` | Centre error over 17 determinant-one deformations, aspect ratios 1–3 |
+| `improved_MOCA` | Conceptual modification of MOCA using ideal inner-core SOLO inputs |
+| `SOLO_AR_err` | Centre error over 17 determinant-one deformations, aspect ratios 1–3 |
 
 Default truth: circular Gaussian, Rc=85 km, psi0=250,000 m²/s, centre (0,0).
 P1–P3 are at y=20/50/80 km, each **140 km long**, sampled every 10 km.
