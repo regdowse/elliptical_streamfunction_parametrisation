@@ -337,7 +337,7 @@ def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None,inclu
         image=section_ax.contourf(section_data['x_m']/1000,depths,
             np.ma.masked_invalid(values),levels=levels,cmap='RdBu_r',
             extend='both',corner_mask=False)
-        fig.colorbar(image,cax=section_cax,label=r'Relative vorticity $\omega$ (s$^{-1}$)')
+        fig.colorbar(image,cax=section_cax,label='Relative vorticity (s$^{-1}$)')
     else:
         section_ax.text(.5,.5,'No supported reconstruction',ha='center',transform=section_ax.transAxes)
         section_cax.set_visible(False)
