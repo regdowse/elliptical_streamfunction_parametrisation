@@ -354,9 +354,9 @@ def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None,inclu
     tracked=results.loc[(results.depth_m>=shallow)&(results.depth_m<=deep)]
     rc_ax.plot(tracked.Rc/1000,tracked.depth_m,'.-',color=radius_color,lw=2.5,ms=5)
     omega_ax.plot(tracked.Omega,tracked.depth_m,'.-',color=omega_color,lw=2.5,ms=5)
-    rc_ax.set_xlabel(r'Characteristic radius $\mathbf{R_c}$ (km)', fontweight='bold')
+    rc_ax.set_xlabel(r'Characteristic radius $\mathbf{R_c}$ (km)')#, fontweight='bold')
     rc_ax.set(ylabel='Depth (m)',ylim=(deep,shallow))
-    omega_ax.set_xlabel(r'Angular velocity $\mathbf{\Omega}$ (s$\mathbf{^{-1}}$)',color=omega_color, fontweight='bold')
+    omega_ax.set_xlabel(r'Angular velocity $\mathbf{\Omega}$ (s$\mathbf{^{-1}}$)',color=omega_color)#, fontweight='bold')
     rc_ax.xaxis.label.set_color(radius_color)
     rc_ax.tick_params(axis='x',colors=radius_color)
     omega_ax.tick_params(axis='x',colors=omega_color)
