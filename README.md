@@ -1,8 +1,8 @@
 # SWOT frontal cyclonic eddy
 
 Standalone case study applying the existing LATTE method from Elliptical
-Streamfunction Parametrisation (ESP) to SWOT snapshots of one frontal cyclonic
-eddy. This branch is independent of the original manuscript reproduction work.
+Streamfunction Parametrisation (ESP) to SWOT snapshots of two distinct frontal cyclonic
+eddies (upstream and downstream). This branch is independent of the original manuscript reproduction work.
 
 ## Layout
 
@@ -13,7 +13,7 @@ eddy. This branch is independent of the original manuscript reproduction work.
 - `archive/` — ignored local references from the original project, including
   example datasets. These are not study inputs or runtime dependencies.
 
-## Run the first snapshot
+## Run all eight applications
 
 Open `analysis.ipynb` from this directory. Edit `config.json`, restart the Python
 kernel, and run all cells. Configuration controls the input fields, coordinate
@@ -25,11 +25,12 @@ Requires NumPy, pandas, SciPy, Matplotlib, xarray, netCDF4, IPython and a Jupyte
 frontend/kernel. All notebook code cells have been run in order in a fresh
 Python process; interactive Jupyter execution has not yet been tested.
 
-The first snapshot uses supplied absolute geostrophic velocities from
-1 November 2023, pass 545. No archived datasets, new gradient derivation,
+The notebook shows one observed/reconstructed pair and a Markdown summary for
+each eddy/pass combination, grouped by eddy. It uses supplied absolute
+geostrophic velocities. No archived datasets, new gradient derivation,
 background subtraction or gap filling are used. Selection radii are provisional.
 Outputs remain cleared in the saved notebook. Inspect the observation maps,
-fit statuses, reconstruction, residuals and radius sensitivity before interpreting
+fit statuses, reconstruction and optional radius sensitivity before interpreting
 the fit. Preliminary diagnostics show substantial eastern frontal-current
 residuals. See `context/study_notes.md` for findings and limitations.
 
@@ -38,3 +39,51 @@ residuals. See `context/study_notes.md` for findings and limitations.
 Work on `swot-frontal-eddy`, committing only when requested. Keep raw data,
 archived references and generated results out of Git. The sibling checkout on
 `main`, manuscript releases and Zenodo records remain unchanged.
+
+## Analysis modules and configuration
+
+All selection/fitting code lives in `swot_processing.py`; all plotting code is
+in `figures.py`. `functions.py` remains the baseline scientific implementation.
+The notebook contains only setup and eight short analysis/display calls.
+
+Config settings apply in order: shared defaults, the selected entry in `eddies`,
+the snapshot entry, then `overrides[eddy][snapshot]`. Nested keys are merged.
+For example, to change only the upstream inner radius on 1 November:
+
+```json
+"overrides": {
+  "upstream": {
+    "2023-11-01": {"latte": {"inner_radius_m": 20000}}
+  }
+}
+```
+
+Eddy origins: downstream (151.75, -34.75), upstream (152.5, -33.0).
+No parameters propagate between them or across passes. The default 15/50 km
+selection radii are provisional for every application. An unavailable fit is
+shown explicitly, never replaced with invented parameters.
+
+For optional diagnostics, use `figures.plot_radial_diagnostic(result)` and
+`swot_processing.sensitivity_table(result)`, selecting an entry from the
+notebook's `results[(eddy, snapshot)]` dictionary. Pairwise speed colour scales
+are shared within each application, not across all eight.
+
+Per-combination `coordinates.origin_longitude_deg` / `origin_latitude_deg`
+overrides set each application's local origin. Its LATTE starting centre is
+`latte.initial_center_m` (normally `[0, 0]` relative to that origin). Unspecified
+combinations retain their eddy default. Summaries report both origin and fitted
+centre, selection thresholds and sample counts. The orange ellipse marks
+`rho = Rc / sqrt(2)`, the model tangential-speed peak ellipse; speed is not
+constant around it. Red boundaries show inner and outer observation selections.
+
+Display controls in `plot`:
+
+```json
+"show_selection_boundaries": true,
+"show_starting_centre": true,
+"starting_centre_color": "magenta"
+```
+
+Set either flag to false to hide that overlay. The fitted centre and orange
+maximum-speed ellipse remain independent. Starting origins are fixed config
+values; rerunning the notebook does not overwrite them with new fit results.

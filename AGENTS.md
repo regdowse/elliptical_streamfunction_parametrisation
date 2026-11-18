@@ -3,7 +3,7 @@
 ## Scope and boundaries
 
 This is a standalone case study applying existing LATTE/ESP methods to a small
-number of SWOT snapshots of one frontal cyclonic eddy. It is not an extension
+number of SWOT snapshots of two distinct frontal cyclonic eddies (upstream and downstream). It is not an extension
 of the manuscript reproduction project or a general ESP release.
 
 Work in this worktree on `swot-frontal-eddy`. The sibling original checkout is
@@ -23,8 +23,12 @@ instruction. Commit only when asked. Before destructive Git operations check
 - `archive/`: ignored local reference material from the original project,
   including its applications, experiments, helper modules, README, example
   datasets, and initial instructions. It must not become a runtime dependency.
-- `analysis.ipynb`: planned entry point; create when analysis begins.
-- `swot_processing.py`: add small reusable processing functions when useful.
+- `analysis.ipynb`: eight independent applications (two eddies × four passes),
+  each showing observed/reconstructed flow followed by a Markdown summary.
+- `swot_processing.py`: configuration, data selection, fitting and summaries.
+- `figures.py`: all plotting and display; optional radial diagnostic.
+- `config.json`: shared defaults, eddy origins/settings, snapshot files and
+  per-combination overrides. No fit state propagates between applications.
 
 Do not use archived drifter, ADCP, model, or conventional satellite datasets as
 observations for this case study. Consult archived LATTE application 2 for the
@@ -61,4 +65,4 @@ Keep secrets, raw data, caches, environments and large generated products out of
 Git. Track context notes and meaningful checks. Update `context/study_notes.md`
 with agreed decisions; keep operative agent instructions in this root file.
 The initial branch cleanup was approved; further broad restructuring requires
-agreement. No fitting or scientific conclusions have yet been established.
+agreement. Trial fits exist; their convergence is not physical validation.

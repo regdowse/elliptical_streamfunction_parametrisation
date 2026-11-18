@@ -1,5 +1,4 @@
 {
-  "input_file": "data/cycle_005/SWOT_L3_LR_SSH_Expert_005_532_20231031T155229_20231031T164355_v3.0.nc",
   "fields": {
     "longitude": "longitude",
     "latitude": "latitude",
@@ -8,11 +7,6 @@
     "u": "ugos_filtered",
     "v": "vgos_filtered",
     "quality": "quality_flag"
-  },
-  "coordinates": {
-    "origin_longitude_deg": 151.75,
-    "origin_latitude_deg": -34.75,
-    "metres_per_degree": 111000.0
   },
   "selection": {
     "quality_values": [
@@ -72,11 +66,121 @@
     "quiver_stride": 5,
     "quiver_scale": 20,
     "figure_size": [
-      15,
+      12,
       5
     ],
     "radial_curve_points": 400,
     "cmap": "Blues_r",
-    "scatter_size": 20
+    "scatter_size": 25,
+    "show_selection_boundaries": false,
+    "show_starting_centre": false,
+    "starting_centre_color": "magenta"
+  },
+  "coordinates": {
+    "metres_per_degree": 111000.0
+  },
+  "eddies": {
+    "downstream": {
+      "label": "Downstream eddy",
+      "coordinates": {
+        "origin_longitude_deg": 151.75,
+        "origin_latitude_deg": -34.75
+      }
+    },
+    "upstream": {
+      "label": "Upstream eddy",
+      "coordinates": {
+        "origin_longitude_deg": 152.5,
+        "origin_latitude_deg": -33.0
+      }
+    }
+  },
+  "snapshots": {
+    "2023-10-10": {
+      "input_file": "data/cycle_004/SWOT_L3_LR_SSH_Expert_004_532_20231010T190723_20231010T195850_v3.0.nc",
+      "cycle": "004",
+      "pass": "532"
+    },
+    "2023-10-11": {
+      "input_file": "data/cycle_004/SWOT_L3_LR_SSH_Expert_004_545_20231011T061612_20231011T070738_v3.0.nc",
+      "cycle": "004",
+      "pass": "545"
+    },
+    "2023-10-31": {
+      "input_file": "data/cycle_005/SWOT_L3_LR_SSH_Expert_005_532_20231031T155229_20231031T164355_v3.0.nc",
+      "cycle": "005",
+      "pass": "532"
+    },
+    "2023-11-01": {
+      "input_file": "data/cycle_005/SWOT_L3_LR_SSH_Expert_005_545_20231101T030117_20231101T035244_v3.0.nc",
+      "cycle": "005",
+      "pass": "545"
+    }
+  },
+  "overrides": {
+    "downstream": {
+      "2023-10-10": {
+        "coordinates": {
+          "origin_longitude_deg": 151.93620719410944,
+          "origin_latitude_deg": -34.622356583301475
+        },
+        "latte": {
+          "initial_center_m": [
+            0,
+            0
+          ]
+        }
+      },
+      "2023-10-11": {
+        "coordinates": {
+          "origin_longitude_deg": 151.8824006764323,
+          "origin_latitude_deg": -34.60006933043701
+        },
+        "latte": {
+          "initial_center_m": [
+            0,
+            0
+          ]
+        }
+      },
+      "2023-11-01": {
+        "coordinates": {
+          "origin_longitude_deg": 151.64714352212155,
+          "origin_latitude_deg": -34.658477012639366
+        },
+        "latte": {
+          "initial_center_m": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "upstream": {
+      "2023-10-11": {
+        "coordinates": {
+          "origin_longitude_deg": 153.03710058235853,
+          "origin_latitude_deg": -33.18018018018018
+        },
+        "latte": {
+          "initial_center_m": [
+            0,
+            0
+          ]
+        }
+      },
+      "2023-11-01": {
+        "coordinates": {
+          "origin_longitude_deg": 152.35675782510108,
+          "origin_latitude_deg": -33.05312998442898
+        },
+        "latte": {
+          "initial_center_m": [
+            0,
+            0
+          ]
+        }
+      }
+    }
   }
 }
