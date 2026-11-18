@@ -154,3 +154,71 @@ Applied (+20, -20) km relative to previous plotted origin
 (153.03710058, -33.18018018). Other settings/applications unchanged.
 Case executed and plotted: inner initial_insufficient_samples,
 radial not_attempted. Affected notebook outputs cleared.
+
+## Explicit per-application radii
+
+Researcher chose manual per-application radii rather than automatic search.
+All eight overrides now explicitly specify inner and outer radii. Preserved
+previous effective values except upstream 11 October, now a trial 25/50 km
+pair. Origins and plot preferences unchanged. Validated all eight resolved
+radius pairs and executed/rendered the changed case: inner status
+refined_insufficient_samples, radial status not_attempted.
+The affected notebook output was cleared. No fitting mathematics changed.
+
+## Optional single-stage inner fit
+
+Researcher approved disabling the second selection/refit stage for upstream
+11 October. Added latte.refine_inner (default true), with false only for that
+application. Preserved its current user-selected 20 km inner / 50 km outer
+radii and all origins. Single-stage mode calls existing latte on the initial
+seed/Q/radius mask. Outer fitting still uses the fitted centre/Q and the same
+outer radius. It classifies actual initial-fit samples as inner data; no
+refined samples are claimed. Summary and boundary geometry identify the mode.
+
+All eight cases executed and rendered; checked inner results against direct
+latte in single-stage mode and direct refine_latte for all seven defaults.
+Representative single-stage plot inspected. functions.py unchanged. Existing
+baseline matrix-multiplication warnings remain visible on other cases.
+
+Upstream 11 October trial: both fits optimized; initial samples 18; centre
+(7.87, 26.62) km, approximately 153.1218 E / 32.9404 S; Rc 32.60 km;
+vector R2 0.451, vector RMSE 0.357 m/s. Rotation is ANTICYCLONIC, an important
+mismatch with the intended cyclonic target. This is not an accepted physical
+identification. No rotation sign or centre constraints were imposed.
+
+## Starting-position diagnostic scan (upstream 11 October)
+
+Researcher requested testing whether seed movement improves this case. Tested
+169 seed offsets (-30 to +30 km east/north in 5 km steps) relative to the current
+fixed origin. Kept the current USER settings: single-stage inner fit, 20 km
+inner radius, 60 km outer radius, identity initial Q. Held coordinate origin,
+data domain and quality mask fixed; no saved config changes or seed promotion.
+Evaluated all full reconstructions on the same 948 valid vectors within 60 km
+of the original plot origin. Target comparison: plot coordinates (10,10) km.
+
+20 full fits, including five cyclonic. Baseline (0,0): fitted (7.87,26.62) km,
+anticyclonic, common-area R2 0.549 and vector RMSE 0.258 m/s. Best common-area
+trial (-5,15): fitted (17.85,10.47) km, anticyclonic, 81 initial samples,
+R2 0.765 and RMSE 0.186 m/s. Closest-to-target trial (0,25): fitted (8.58,2.59)
+km, anticyclonic, 55 initial samples, R2 0.723 and RMSE 0.202 m/s.
+All five cyclonic fits lie 72–95 km from the target and have negative common-area
+R2. Moving the seed improves the empirical velocity match but does not provide
+a convincing cyclonic identification near the expected centre in this grid.
+
+Complete candidate table, frozen settings, diagnostic figures and rerunnable
+script are local ignored artifacts in results/starting_position_test/. Ten
+numerical warnings were captured across the scan and recorded per candidate
+in the CSV, not silently discarded. This is a seed-sensitivity exploration,
+not physical validation or proof that another solution cannot exist.
+
+## Corrected upstream 11 October target identification
+
+Researcher identified that the previous trials targeted the wrong feature.
+The intended small cyclonic eddy is at (-10,+60) km on the previous grid,
+whose origin was (153.03710058, -33.18018018).
+Converted with that grid's coordinate scale to new fixed origin
+(152.92946011, -32.63963964), local starting seed (0,0). Previous anticyclonic
+trial fits are not identifications of this corrected target. Preserved current
+inner/outer radii (10000, 20000 m)
+and refinement flag; researcher will reduce radii for the smaller eddy.
+Other applications unchanged; affected notebook output cleared.

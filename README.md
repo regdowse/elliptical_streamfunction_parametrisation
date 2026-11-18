@@ -87,3 +87,21 @@ Display controls in `plot`:
 Set either flag to false to hide that overlay. The fitted centre and orange
 maximum-speed ellipse remain independent. Starting origins are fixed config
 values; rerunning the notebook does not overwrite them with new fit results.
+
+Every combination now has explicit `inner_radius_m` and `outer_radius_m` under
+`overrides[eddy][snapshot].latte`. Edit those values for individual applications;
+the shared radii are fallback defaults. No automatic radius search or candidate
+selection runs. Upstream 11 October uses a provisional 25/50 km pair; other
+combinations retain their previously effective radii.
+
+## Inner-fit refinement
+
+`latte.refine_inner` defaults to `true`: use the existing two-stage
+`refine_latte` selection/refit. Set it to `false` in an application override
+to run existing `latte` once on its initial centre/Q/radius selection, then
+continue the outer radial fit. Upstream 11 October currently uses this trial
+mode with the researcher's 20/50 km radii. The summary identifies the mode;
+refined counts are not applicable in single-stage mode. Selection plots show
+the original seed ellipse for that mode, rather than the fitted ellipse.
+A converged single-stage fit does not resolve missing core coverage or
+establish the identity/rotation of the targeted eddy.

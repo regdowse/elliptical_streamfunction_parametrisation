@@ -39,19 +39,23 @@ def plot_application(result):
             ax.scatter(seed[0]/1000, seed[1]/1000, marker='+',
                        c=opts.get('starting_centre_color', 'magenta'), label='Starting centre')
         if rec['inner_status'] == 'optimized':
-            ax.scatter(rec['xc_m']/1000, rec['yc_m']/1000, marker='x', c='red', label='Fitted centre')
+            ax.scatter(rec['xc_m']/1000, rec['yc_m']/1000, marker='x', c='red', label='Centre')
             values, vectors = np.linalg.eigh(result['Q'])
             theta = np.linspace(0, 2*np.pi, 200)
+            refined = rec['inner_mode'] == 'refined'
+            selection_centre = result['inner']['preliminary_center'] if refined else seed
+            selection_Q = result['inner']['preliminary_Q'] if refined else np.asarray(settings['latte']['initial_Q'])
             boundaries = [
-                (settings['latte']['inner_radius_m'], ':', 'red', 'Inner selection',
-                 result['inner']['preliminary_center'], result['inner']['preliminary_Q']),
+                (settings['latte']['inner_radius_m'], ':', 'red',
+                 'Refined inner selection' if refined else 'Initial inner selection (single-stage)',
+                 selection_centre, selection_Q),
                 (settings['latte']['outer_radius_m'], '--', 'red', 'Outer selection',
                  (rec['xc_m'], rec['yc_m']), result['Q'])]
             if not opts.get('show_selection_boundaries', True):
                 boundaries = []
             if success:
                 boundaries.append((rec['Rc_km']*1000/np.sqrt(2), '-', 'darkorange',
-                                   'Maximum tangential-speed ellipse',
+                                   'Max tangential velocity',
                                    (rec['xc_m'], rec['yc_m']), result['Q']))
             for radius, style, colour, label, centre, geometry in boundaries:
                 values, vectors = np.linalg.eigh(geometry)

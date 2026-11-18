@@ -36,7 +36,8 @@
       ]
     ],
     "inner_radius_m": 15000,
-    "outer_radius_m": 50000
+    "outer_radius_m": 50000,
+    "refine_inner": true
   },
   "outer_fit": {
     "Rc0": null,
@@ -128,7 +129,9 @@
           "initial_center_m": [
             0,
             0
-          ]
+          ],
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
         }
       },
       "2023-10-11": {
@@ -140,7 +143,15 @@
           "initial_center_m": [
             0,
             0
-          ]
+          ],
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
+        }
+      },
+      "2023-10-31": {
+        "latte": {
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
         }
       },
       "2023-11-01": {
@@ -152,21 +163,38 @@
           "initial_center_m": [
             0,
             0
-          ]
+          ],
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
         }
       }
     },
     "upstream": {
+      "2023-10-10": {
+        "latte": {
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
+        }
+      },
       "2023-10-11": {
         "coordinates": {
-          "origin_longitude_deg": 153.03710058235853,
-          "origin_latitude_deg": -33.18018018018018
+          "origin_longitude_deg": 152.92946010886735,
+          "origin_latitude_deg": -32.63963963963964
         },
         "latte": {
           "initial_center_m": [
             0,
             0
-          ]
+          ],
+          "inner_radius_m": 10000,
+          "outer_radius_m": 20000,
+          "refine_inner": true
+        }
+      },
+      "2023-10-31": {
+        "latte": {
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
         }
       },
       "2023-11-01": {
@@ -178,7 +206,9 @@
           "initial_center_m": [
             0,
             0
-          ]
+          ],
+          "inner_radius_m": 15000,
+          "outer_radius_m": 50000
         }
       }
     }
