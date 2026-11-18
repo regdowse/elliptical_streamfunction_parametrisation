@@ -13,24 +13,25 @@ eddy. This branch is independent of the original manuscript reproduction work.
 - `archive/` — ignored local references from the original project, including
   example datasets. These are not study inputs or runtime dependencies.
 
-The planned analysis entry point is `analysis.ipynb`; add `swot_processing.py`
-only as reusable processing becomes useful. Neither has been created yet.
+## Run the first snapshot
 
-## Current status and requirements
+Open `analysis.ipynb` from this directory. Edit `config.json`, restart the Python
+kernel, and run all cells. Configuration controls the input fields, coordinate
+origin, quality mask, spatial extent, subsampling, LATTE seed and selection
+radii, exposed outer-fit options, sensitivity grid and plotting settings.
+Internal optimiser settings in `functions.py` are unchanged.
 
-Repository cleanup is complete. Data inspection and scientific processing have
-not begun. Target location, velocity inputs, quality filtering and fit settings
-remain to be established; see the tracked study notes.
+Requires NumPy, pandas, SciPy, Matplotlib, xarray, netCDF4, IPython and a Jupyter
+frontend/kernel. All notebook code cells have been run in order in a fresh
+Python process; interactive Jupyter execution has not yet been tested.
 
-Importing `functions.py` requires NumPy, pandas, SciPy and Matplotlib, plus the
-Python standard library. SWOT analysis will also need a NetCDF reader (for
-example xarray with netCDF4) and Jupyter for notebooks. No environment has been
-installed or validated for this study yet.
-
-Fits should use consistent local east/north coordinates and units. Establish
-and document the observation/velocity definitions before calling LATTE; do not
-assume SSH directly supplies horizontal velocity. Check fitting diagnostics and
-sensitivity rather than treating convergence as physical validation.
+The first snapshot uses supplied absolute geostrophic velocities from
+1 November 2023, pass 545. No archived datasets, new gradient derivation,
+background subtraction or gap filling are used. Selection radii are provisional.
+Outputs remain cleared in the saved notebook. Inspect the observation maps,
+fit statuses, reconstruction, residuals and radius sensitivity before interpreting
+the fit. Preliminary diagnostics show substantial eastern frontal-current
+residuals. See `context/study_notes.md` for findings and limitations.
 
 ## Version control
 

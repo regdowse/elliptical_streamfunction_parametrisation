@@ -35,3 +35,30 @@
 - Desired comparisons and scientific interpretation across snapshots.
 
 No data contents, fits or scientific results have been validated yet.
+
+## First snapshot notebook and configuration
+
+- Researcher selected 1 November 2023, pass 545, approximate centre
+  151.75 E / 34.75 S, and absolute geostrophic flow only.
+- `analysis.ipynb` reads `config.json`. Uses supplied `ugos_filtered` and
+  `vgos_filtered`, quality code 0, no gap filling or extra smoothing.
+- File metadata inspected: L3 v3.0; supplied velocities use spline-derived
+  filtered SSH gradients plus mean dynamic currents. Local nearest-centre time
+  is 03:16:53 UTC, rather than the initially approximate 03:27.
+- Local Cartesian approximation follows the archived application, with origin
+  at the researcher seed and 111000 m per degree (longitude cosine scaled).
+- Provisional inner/outer radii: 15/50 km, identity initial Q. Sensitivity grid:
+  inner 10/15/20 km and outer 40/50/60 km. These are trial choices, not validated.
+- All notebook code cells executed in order in a fresh Python process using an
+  Agg plotting backend; diagnostic figure inspected. Notebook outputs remain
+  cleared. Baseline functions.py unchanged. This is not a Jupyter kernel test.
+- Trial result: centre ~151.647 E / 34.658 S, axis ratio ~1.30, Rc ~49.9 km;
+  inner R2 ~0.917, all-candidate outer vector R2 ~0.495, vector RMSE ~0.677 m/s.
+  Cyclonic rotation. Strong eastern-current residuals and radius sensitivity
+  mean this is preliminary, not a validated physical eddy reconstruction.
+- NumPy emitted matrix-multiplication runtime warnings inside the unchanged
+  tangential_velocity helper during the sensitivity run; reported fit outputs
+  were finite. The cause has not been investigated; do not silently suppress.
+- No confidence/prediction bands shown: spatial correlation is not modelled.
+- Remaining decisions: review selection footprint, background frontal influence,
+  filtering limitations, and fit adequacy. No archived non-SWOT data are used.

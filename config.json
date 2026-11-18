@@ -1,0 +1,82 @@
+{
+  "input_file": "data/cycle_005/SWOT_L3_LR_SSH_Expert_005_532_20231031T155229_20231031T164355_v3.0.nc",
+  "fields": {
+    "longitude": "longitude",
+    "latitude": "latitude",
+    "time": "time",
+    "height": "ssha_filtered",
+    "u": "ugos_filtered",
+    "v": "vgos_filtered",
+    "quality": "quality_flag"
+  },
+  "coordinates": {
+    "origin_longitude_deg": 151.75,
+    "origin_latitude_deg": -34.75,
+    "metres_per_degree": 111000.0
+  },
+  "selection": {
+    "quality_values": [
+      0
+    ],
+    "extent_km": [
+      -70,
+      70,
+      -65,
+      65
+    ],
+    "pixel_stride": 1
+  },
+  "latte": {
+    "initial_center_m": [
+      0,
+      0
+    ],
+    "initial_Q": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "inner_radius_m": 15000,
+    "outer_radius_m": 50000
+  },
+  "outer_fit": {
+    "Rc0": null,
+    "Rc_max": null,
+    "maxfev": 10000
+  },
+  "sensitivity": {
+    "inner_radii_m": [
+      5000,
+      10000,
+      15000,
+      20000,
+      25000,
+      30000,
+      35000
+    ],
+    "outer_radii_m": [
+      30000,
+      40000,
+      50000,
+      60000,
+      70000,
+      80000
+    ]
+  },
+  "plot": {
+    "quiver_stride": 5,
+    "quiver_scale": 20,
+    "figure_size": [
+      15,
+      5
+    ],
+    "radial_curve_points": 400,
+    "cmap": "Blues_r",
+    "scatter_size": 20
+  }
+}
