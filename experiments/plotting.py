@@ -46,7 +46,7 @@ def plot_noise_sampling(results, config, caption_flag=False):
     fig, axes = plt.subplots(3, 4, figsize=(15, 9), sharex=True, sharey="col")
     plotted = {key: [] for key in METRICS}
     for row, method in enumerate(config.methods):
-        for regime in config.regimes:
+        for regime_index, regime in enumerate(config.regimes):
             group = results.loc[(results.method == method) & (results.density == regime)]
             color = settings["regime_colors"][regime]
             fractions = sorted(group.noise_fraction.unique())
@@ -62,7 +62,7 @@ def plot_noise_sampling(results, config, caption_flag=False):
                                      if len(values) else np.full(3, np.nan))
                 low, median, high = np.asarray(quantiles).T
                 ax = axes[row, col]
-                ax.plot(x, median, color=color, marker="o", markersize=3)
+                ax.plot(x, median, color=color, marker=("o", "^", "s")[regime_index], markersize=4)
                 ax.fill_between(x, low, high, color=color, alpha=.15, linewidth=0)
                 plotted[metric].extend(np.r_[low, median, high])
                 missing = ~np.isfinite(median)
@@ -87,7 +87,7 @@ def plot_noise_sampling(results, config, caption_flag=False):
         axes[0, col].set_ylim(bottom=0)
         for row in range(3):
             axes[row, col].set_ylabel(LABELS[col] + ("\n(symlog)" if note else ""))
-    handles = [Line2D([], [], color=settings["regime_colors"][r], marker="o", label=r) for r in config.regimes]
+    handles = [Line2D([], [], color=settings["regime_colors"][r], marker=("o", "^", "s")[i], label=r) for i, r in enumerate(config.regimes)]
     fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False)
     if caption_flag:
         caption = (f"Median and {settings['percentiles'][0]:g}–{settings['percentiles'][1]:g} percentiles among accepted full fits; bands are Monte Carlo spread, not confidence intervals.\n"
@@ -103,7 +103,7 @@ def plot_noise_sampling(results, config, caption_flag=False):
 def plot_background_flow(results, config, caption_flag=False):
     settings = config.values["plotting"]
     fig, axes = plt.subplots(1, 4, figsize=(15, 4.2), sharex=True)
-    for method in config.methods:
+    for method_index, method in enumerate(config.methods):
         group = results.loc[results.method == method]
         baseline = group.loc[group.background_fraction == 0]
         assert len(baseline) == 1, "There must be one shared zero-current baseline per method."
@@ -115,7 +115,7 @@ def plot_background_flow(results, config, caption_flag=False):
                     continue
                 axes[col].plot(x, series[metric].where(series.success),
                     color=settings["method_colors"][method], linestyle=settings["direction_styles"][direction],
-                    marker="o", markersize=3)
+                    marker=("o", "^", "s")[method_index], markersize=4)
                 failed = ~series.success.to_numpy()
                 if failed.any():
                     axes[col].plot(x[failed], np.full(failed.sum(), .94), "x",
@@ -127,7 +127,7 @@ def plot_background_flow(results, config, caption_flag=False):
         ax.set_ylabel(LABELS[col])
         ax.set_xlabel(r"$|U_{\rm bg}|/U_{\rm ref}$ (%)")
         ax.set_xticks(100*np.asarray(config.values["background"]["fractions"]))
-    handles = [Line2D([], [], color=settings["method_colors"][m], label=m) for m in config.methods]
+    handles = [Line2D([], [], color=settings["method_colors"][m], marker=("o", "^", "s")[i], label=m) for i, m in enumerate(config.methods)]
     handles += [Line2D([], [], color=".3", linestyle=settings["direction_styles"][d],
                         label="Eastward (SOLO only)" if d == "eastward" else "Northward")
                 for d in ("eastward", "northward")]

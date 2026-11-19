@@ -63,7 +63,7 @@ def outer_profile(ax,curve,config,color):
 def plot_doppio(data,config):
     """Manuscript Figure 7: legacy layout using the current saved DOPPIO fits."""
     import matplotlib.gridspec as gridspec
-    from matplotlib.patches import Rectangle
+    from matplotlib.lines import Line2D
     field = data["field"]
     x,y = field["x_m"]/1000,field["y_m"]/1000
     X,Y = np.meshgrid(x,y,indexing="ij")
@@ -115,13 +115,16 @@ def plot_doppio(data,config):
             (dx_ell, dy_ell) = (X - data.xc, Y - data.yc)
             rho2_ell = data.q11 * dx_ell ** 2 + 2 * data.q12 * dx_ell * dy_ell + data.q22 * dy_ell ** 2
             ax_main.contour(X, Y, rho2_ell, levels=[data.Rc ** 2 / 2], colors=colours[i], linestyles='--', zorder=3)
-            ax_main.text(33, -74 - 10 * i, f'$(x_0,y_0)=({data.xc:.2f},{data.yc:.2f})$', color='darkgreen' if '2' in dic['name'] else colours[i], zorder=11)
             i += 1
-    (x_pos, y_pos) = (0.8, 0.09)
-    box_width = 0.37
-    box_height = 0.16
-    rect = Rectangle((x_pos - box_width / 2, y_pos - box_height / 2), box_width, box_height, transform=ax_main.transAxes, facecolor='white', edgecolor='black', zorder=10)
-    ax_main.add_patch(rect)
+    coordinate_handles = []
+    for name in ('P1', 'P2', 'P3'):
+        row = df_res.loc[name]
+        coordinate_handles.append(Line2D([], [], ls='none',
+            label=f'E{name}: $(x_0,y_0)=({row.xc:.2f},{row.yc:.2f})$'))
+    ax_main.legend(handles=coordinate_handles, labelcolor=['r', 'darkgreen', 'b'],
+                   handlelength=0, handletextpad=0, loc='lower right', fontsize=10,
+                   borderpad=.35, borderaxespad=.3, labelspacing=.25,
+                   fancybox=False, framealpha=1, edgecolor='black')
     ax_main.text(-160, 140, '(a)', fontsize=14, fontweight='bold')
     ax_main.axis('equal')
     ax_main.set_xlim(-100, 100)
@@ -135,14 +138,14 @@ def plot_doppio(data,config):
         (yu1, yv1, yu2, yv2) = (dic[k] for k in ['yu1', 'yv1', 'yu2', 'yv2'])
         data = df_res.loc[dic['name']]
         ax2 = fig.add_subplot(gs[d // 3, 2 + d % 3])
-        ax2.plot(x1, u1, color='brown', label='$U_1$', alpha=0.6)
-        ax2.plot(x1, yu1, color='brown', alpha=0.2)
-        ax2.plot(x1, v1, 'k', label='$V_1$', alpha=0.6)
-        ax2.plot(x1, yv1, 'k', alpha=0.2)
-        ax2.plot(y2, u2, color='olive', label='$U_2$', alpha=0.6)
-        ax2.plot(y2, yu2, color='olive', alpha=0.2)
-        ax2.plot(y2, v2, 'm', label='$V_2$', alpha=0.6)
-        ax2.plot(y2, yv2, 'm', alpha=0.2)
+        ax2.plot(x1, u1, color='brown', label='$U_1$', alpha=1.0, ls='-')
+        ax2.plot(x1, yu1, color='brown', alpha=0.45, ls='-')
+        ax2.plot(x1, v1, 'k', label='$V_1$', alpha=1.0, ls='-.')
+        ax2.plot(x1, yv1, 'k', alpha=0.45, ls='-.')
+        ax2.plot(y2, u2, color='olive', label='$U_2$', alpha=1.0, ls='--')
+        ax2.plot(y2, yu2, color='olive', alpha=0.45, ls='--')
+        ax2.plot(y2, v2, 'm', label='$V_2$', alpha=1.0, ls=':')
+        ax2.plot(y2, yv2, 'm', alpha=0.45, ls=':')
         ax2.axhline(y=0, color='k', zorder=-1, linewidth=0.5, alpha=0.5)
         ax2.axvline(x=0, color='k', zorder=-1, linewidth=0.5, alpha=0.5)
         ax2.set_ylabel('(ms$^{-1}$)')

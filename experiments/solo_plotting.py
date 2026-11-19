@@ -65,9 +65,8 @@ def plot_cases(data, config):
     alpha = 1
     quiv = ax_main_left.quiver(x[::spacing], y[::spacing], u[::spacing, ::spacing].T, v[::spacing, ::spacing].T, alpha=0.2, scale=scale, width=width, zorder=1)
     ax_main_left.contour(X, Y, rho2, levels=[Rc ** 2 / 2], colors='k', linestyles='--')
-    colors = ['limegreen', 'r', 'b']
+    colors = ['g', 'r', 'b']
     color = ['g', 'r', 'b']
-    color_fits = [(0, 0.9, 0, 0.8), (1, 0, 0, 0.6), (0, 0, 1, 0.6)]
     i = 0
     for dic in dic_tests.values():
         if 'P' in dic['name']:
@@ -79,10 +78,10 @@ def plot_cases(data, config):
             (dx_ell, dy_ell) = (X - data.xc, Y - data.yc)
             rho2_ell = data.q11 * dx_ell ** 2 + 2 * data.q12 * dx_ell * dy_ell + data.q22 * dy_ell ** 2
             ax_main_left.contour(X, Y, rho2_ell, levels=[data.Rc ** 2 / 2], colors=color[i], linestyles='--')
-            ax_main_left.text(10, -100 + 10 * i, f'$(x_0,y_0)=({np.abs(data.xc):.2f},{data.yc:.2f})$', color=color[i], zorder=10)
+            ax_main_left.text(-5, -100 + 10 * i, f"{dic['name']}: $(x_0,y_0)=({np.abs(data.xc):.2f},{data.yc:.2f})$", color=color[i], zorder=10)
             i += 1
-    (x_pos, y_pos) = (0.75, 0.1)
-    box_width = 0.45
+    (x_pos, y_pos) = (0.70, 0.1)
+    box_width = 0.55
     box_height = 0.16
     rect = Rectangle((x_pos - box_width / 2, y_pos - box_height / 2), box_width, box_height, transform=ax_main_left.transAxes, facecolor='white', edgecolor='black', zorder=9)
     ax_main_left.add_patch(rect)
@@ -99,10 +98,10 @@ def plot_cases(data, config):
         if 'P' in dic['name']:
             (x1, y1, l, u1, v1, UU, VV) = (dic['x1'], dic['y1'], dic['l'], dic['u1'], dic['v1'], dic['UU'], dic['VV'])
             data = df_res.loc[dic['name']]
-            ax2_left.plot(x1, v1, color=color_fits[j], linewidth=3, zorder=-extract_number(dic['name']) - 3)
-            ax2_left.plot(x1, VV, color=color[j], linestyle='--', linewidth=2, zorder=-extract_number(dic['name']))
-            ax3_left.plot(x1, u1, color=color_fits[j], linewidth=3, zorder=-extract_number(dic['name']) - 3)
-            ax3_left.plot(x1, UU, color=color[j], linestyle='--', linewidth=2, zorder=-extract_number(dic['name']))
+            ax2_left.plot(x1, v1, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=1.0, zorder=-extract_number(dic['name']) - 3)
+            ax2_left.plot(x1, VV, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=0.45, zorder=-extract_number(dic['name']))
+            ax3_left.plot(x1, u1, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=1.0, zorder=-extract_number(dic['name']) - 3)
+            ax3_left.plot(x1, UU, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=0.45, zorder=-extract_number(dic['name']))
             j += 1
     ax2_left.axvline(x1[len(x1) // 2], color='black', linewidth=0.8, linestyle='--', zorder=2)
     ax2_left.axhline(y=0, color='k', zorder=-1, linewidth=0.5, alpha=0.5)
@@ -128,14 +127,14 @@ def plot_cases(data, config):
             data = df_res.loc[dic['name']]
             ax_main_right.quiver(x1, y1, u1, v1, scale=scale, width=width * 2, color=color[i], zorder=5 - i)
             ax_main_right.scatter(data.xc, data.yc, color=colors[i], marker='x', s=70, zorder=10 - extract_number(dic['name']))
-            ax_main_right.text(10, -100 + 10 * i, f'$(x_0,y_0)=({np.abs(data.xc):.2f},{data.yc:.2f})$', color=color[i], zorder=10)
+            ax_main_right.text(-5, -100 + 10 * i, f"{dic['name']}: $(x_0,y_0)=({np.abs(data.xc):.2f},{data.yc:.2f})$", color=color[i], zorder=10)
             (dx_ell, dy_ell) = (X - data.xc, Y - data.yc)
             rho2_ell = data.q11 * dx_ell ** 2 + 2 * data.q12 * dx_ell * dy_ell + data.q22 * dy_ell ** 2
             ax_main_right.contour(X, Y, rho2_ell, levels=[data.Rc ** 2 / 2], colors=color[i], linestyles='--')
             ax_main_right.text(x1[0] + (-i * 2 + 10), y1[0] + 20, dic['name'], color=color[i], zorder=3, fontsize=18, fontweight='bold')
             i += 1
-    (x_pos, y_pos) = (0.75, 0.1)
-    box_width = 0.45
+    (x_pos, y_pos) = (0.70, 0.1)
+    box_width = 0.55
     box_height = 0.16
     rect = Rectangle((x_pos - box_width / 2, y_pos - box_height / 2), box_width, box_height, transform=ax_main_right.transAxes, facecolor='white', edgecolor='black', zorder=9)
     ax_main_right.add_patch(rect)
@@ -152,10 +151,10 @@ def plot_cases(data, config):
         if 'L' in dic['name']:
             (x1, y1, l, u1, v1, UU, VV) = (dic['x1'], dic['y1'], dic['l'], dic['u1'], dic['v1'], dic['UU'], dic['VV'])
             data = df_res.loc[dic['name']]
-            ax2_right.plot(x1, v1, color=color_fits[j], linewidth=3, zorder=-extract_number(dic['name']))
-            ax2_right.plot(x1, VV, color=color_fits[j], linestyle='--', linewidth=2, zorder=3 - extract_number(dic['name']))
-            ax3_right.plot(x1, u1, color=color_fits[j], linewidth=3, zorder=-extract_number(dic['name']))
-            ax3_right.plot(x1, UU, color=color_fits[j], linestyle='--', linewidth=2, zorder=3 - extract_number(dic['name']))
+            ax2_right.plot(x1, v1, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=1.0, zorder=-extract_number(dic['name']))
+            ax2_right.plot(x1, VV, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=0.45, zorder=3 - extract_number(dic['name']))
+            ax3_right.plot(x1, u1, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=1.0, zorder=-extract_number(dic['name']))
+            ax3_right.plot(x1, UU, color=color[j], linestyle=('-', '--', '-.')[j], linewidth=1.6, alpha=0.45, zorder=3 - extract_number(dic['name']))
             j += 1
     ax2_right.axvline(x1[len(x1) // 2], color='black', linewidth=0.8, linestyle='--', zorder=2)
     ax2_right.axhline(y=0, color='k', zorder=-1, linewidth=0.5, alpha=0.5)
@@ -176,6 +175,12 @@ def plot_cases(data, config):
     (ymin, ymax) = (-3, 3)
     for ax in axs:
         ax.set_ylim(ymin, ymax)
+    from matplotlib.lines import Line2D
+    for ax, prefix in ((ax3_left, 'P'), (ax3_right, 'L')):
+        ax.legend(handles=[Line2D([], [], color=color[i], ls=style, label=f'{prefix}{i+1}')
+                           for i, style in enumerate(('-', '--', '-.'))],
+                  fontsize=12, ncol=3, loc='lower center', frameon=False,
+                  labelcolor='linecolor', columnspacing=.7, handlelength=2)
     plt.tight_layout()
     return fig
 
@@ -234,7 +239,7 @@ def plot_comparison(data, config):
     axs[0].quiver(X[::spac, ::spac], Y[::spac, ::spac], u[::spac, ::spac], v[::spac, ::spac], scale=scale, width=width, alpha=0.2)
     axs[0].quiver(x1[::spac], y1[::spac], u1[::spac], v1[::spac], color='m', scale=scale, width=width * 3)
     axs[0].scatter(x0, y0, marker='x', color='limegreen', s=100, label='SOLO')
-    axs[0].scatter(x01, y01, marker='x', color='r', s=100, label='MOCA')
+    axs[0].scatter(x01, y01, marker='+', color='r', s=100, linewidths=2, label='MOCA')
     axs[0].set_xlabel('x (km)')
     axs[0].set_ylabel('y (km)')
     axs[0].axis('equal')
@@ -243,7 +248,7 @@ def plot_comparison(data, config):
     axs[0].set_ylim(-100, 100)
     axs[0].text(-0.2, 1.1, 'a)', transform=axs[0].transAxes, fontsize=13, fontweight='bold', va='top', ha='left')
     axs[1].plot(x1, u1, 'm', lw=2)
-    axs[1].plot(x1, np.asarray(curve['moca_u']), ls='--', color='r', lw=2)
+    axs[1].plot(x1, np.asarray(curve['moca_u']), ls='-.', color='r', lw=2)
     axs[1].plot(x1, np.asarray(curve["illustration_u"]), ls='--', color='g', lw=2)
     axs[1].axvline(x=0, ls='--', color='k', alpha=0.5)
     axs[1].axhline(y=0, lw=0.5, color='k', alpha=0.5)
@@ -251,7 +256,7 @@ def plot_comparison(data, config):
     axs[1].set_ylabel('$U$ (ms$^{-1}$)')
     axs[1].text(-0.1, 1.1, 'b)', transform=axs[1].transAxes, fontsize=13, fontweight='bold', va='top', ha='left')
     axs[2].plot(x1, v1, 'm', lw=2)
-    axs[2].plot(x1, np.asarray(curve['moca_v']), ls='--', color='r', lw=2)
+    axs[2].plot(x1, np.asarray(curve['moca_v']), ls='-.', color='r', lw=2)
     axs[2].plot(x1, np.asarray(curve["illustration_v"]), ls='--', color='g', lw=2)
     axs[2].axvline(x=0, ls='--', color='k', alpha=0.5)
     axs[2].axhline(y=0, lw=0.5, color='k', alpha=0.5)

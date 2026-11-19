@@ -350,19 +350,20 @@ def manuscript_panels(results,section_data,*,figure=None,subplot_spec=None,inclu
     # section_ax.set_ylim(None, 0)
 
     rc_ax=fig.add_subplot(grid[1,0]);omega_ax=rc_ax.twiny()
-    radius_color='saddlebrown';omega_color='dodgerblue'
+    radius_color='black';omega_color='#808080'
     tracked=results.loc[(results.depth_m>=shallow)&(results.depth_m<=deep)]
-    rc_ax.plot(tracked.Rc/1000,tracked.depth_m,'.-',color=radius_color,lw=2.5,ms=5)
-    omega_ax.plot(tracked.Omega,tracked.depth_m,'.-',color=omega_color,lw=2.5,ms=5)
-    rc_ax.set_xlabel(r'Characteristic radius $\mathbf{R_c}$ (km)')#, fontweight='bold')
+    rc_ax.plot(tracked.Rc/1000,tracked.depth_m,'.-',color=radius_color,lw=2.0,ms=5,label=r'$R_c$')
+    omega_ax.plot(tracked.Omega,tracked.depth_m,'.-',color=omega_color,lw=2.0,ms=5,label=r'$\Omega$')
+    rc_ax.set_xlabel(r'Characteristic radius $R_c$ (km)')#, fontweight='bold')
     rc_ax.set(ylabel='Depth (m)',ylim=(deep,shallow))
-    omega_ax.set_xlabel(r'Angular velocity $\mathbf{\Omega}$ (s$\mathbf{^{-1}}$)',color=omega_color)#, fontweight='bold')
-    rc_ax.xaxis.label.set_color(radius_color)
-    rc_ax.tick_params(axis='x',colors=radius_color)
-    omega_ax.tick_params(axis='x',colors=omega_color)
-    omega_ax.xaxis.get_offset_text().set_color(omega_color)
-    rc_ax.spines['bottom'].set_color(radius_color)
-    omega_ax.spines['top'].set_color(omega_color)
+    omega_ax.set_xlabel(r'Angular velocity $\Omega$ (s$^{-1}$)',color='black')#, fontweight='bold')
+    rc_ax.xaxis.label.set_color('black')
+    rc_ax.tick_params(axis='x',colors='black')
+    omega_ax.tick_params(axis='x',colors='black')
+    omega_ax.xaxis.get_offset_text().set_color('black')
+    rc_ax.spines['bottom'].set_color('black')
+    omega_ax.spines['top'].set_color('black')
+    rc_ax.legend(handles=rc_ax.lines+omega_ax.lines, loc='center right', fontsize=12, frameon=False)
     rc_ax.set_ylim(None, 0)
 
     if not include_track:
